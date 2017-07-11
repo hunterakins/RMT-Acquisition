@@ -19,4 +19,7 @@ My time uncertainty is either 8.4 milliseconds or 1.04 milliseconds, so my uncer
 Obviously 10kHz uncertainty is unacceptable if I want to sample as low as 10 Khz.
 Thus, I propose having a switch in the acquire_and_out, which will set the sampling rate to be 1.953Msps or 15.625Msps, to be determined by the depth of the survey.
 
+FFT Notes:
+Eliminate ramp by fit to degree 1 poly and subtract as well as subtract the mean
+Then window it (multiply by hanning, hamming, pers, ...)
  

@@ -15,7 +15,9 @@ if __name__ == '__main__':
 		data[i] = float(line)
 		i += 1
 	fftdata = np.fft.fft(data).real
+	np.savetxt('data', data)
 	fftfreq = np.fft.fftfreq(BUFSIZE, d=TIMESTEP)
 	end = time.time()
-	fftarray = np.append(fftdata, fftfreq)
-	np.savetxt("fft",fftdata)
+	fftarray = np.array([[fftdata[i], fftfreq[i]] for i in range(BUFSIZE)])
+	print(fftarray)
+	np.savetxt("fft",fftarray)
