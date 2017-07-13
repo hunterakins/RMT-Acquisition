@@ -1,5 +1,5 @@
 /* 
-Hunter's Note: copied this script from paulbourke.net/miscellaneous/dft, 
+Hunter's Note: copied the FFT function from paulbourke.net/miscellaneous/dft, 
 
 This computes an in-place complex-to-complex FFT 
    x and y are the real and imaginary arrays of 2^m points.
@@ -16,7 +16,7 @@ double sqrt(double x);
 void makesample(double *sp, int bufsize, float freq, float spacing);
 void FFT(short int dir,long m,double *x,double *y);
 
-void main(int argc, char * argv[]) {
+int main(int argc, char * argv[]) {
 	int i = 0;
 	int bufsize = 16384;
 	float freq = 100; /* 100 hertz sine wave */
@@ -36,15 +36,13 @@ void main(int argc, char * argv[]) {
 	for (i = 0; i < bufsize/2; i ++) {
 		printf("%f\n", dp[i]);
 	} 	
+	return 1;
 }
 
 void makesample(double *sp, int bufsize, float freq, float spacing) {
-	double timevalue;
 	int i = 0;
-	double arg;
 
 	for (i = 0; i < bufsize; i += 1) {
-		timevalue = i * spacing;
 		*sp = sin(i * spacing * freq * 2 * M_PI);
 		sp++;
 	}

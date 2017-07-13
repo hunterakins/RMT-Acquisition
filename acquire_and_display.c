@@ -16,13 +16,13 @@ int main(int argc, char *argv[]) {
 	if(rp_Init() != RP_OK){
 		fprintf(stderr, "Rp api init failed!\n");
 	}
-	
-	rp_GenFreq(RP_CH_1, 100000.0);
+	/**/	
+	rp_GenFreq(RP_CH_1, 500000.0);
 	
 	/* Generating amplitude */
 	rp_GenAmp(RP_CH_1, 0.25);
 
-	/* Generating wave form */
+	/* Generating wave formi */
 	rp_GenWaveform(RP_CH_1, RP_WAVEFORM_SINE);
 
 	/* Enable channel */
@@ -30,12 +30,12 @@ int main(int argc, char *argv[]) {
 
 
 
-	float* data=(float *)malloc(RP_BUF_SIZE * sizeof(float));
+	float *data=(float *)malloc(RP_BUF_SIZE * sizeof(float));
 	uint32_t bufferSize = RP_BUF_SIZE;
 	uint32_t* endplace;
 	endplace = &bufferSize;
-	rp_AcqSetDecimation(RP_DEC_64); 
-	rp_AcqSetSamplingRate(RP_SMP_1_953M);
+	rp_AcqSetDecimation(RP_DEC_1); 
+	rp_AcqSetSamplingRate(RP_SMP_125M);
 	rp_AcqReset();
 	rp_AcqGetLatestDataV(RP_CH_1, endplace, data);
 	sleep(1);
