@@ -42,14 +42,13 @@ void FirstOrderCorrect(int bufsize, double c0, double c1, double *dp);
 
 void main(int argc, char * argv[]) {
 	int i= 0;
-	int j = 0;
-	int bufsize = RP_BUFSIZE;
+	int bufsize = RP_BUF_SIZE;
 	float freq = 100; /* 100 hertz sine wave */
 	float spacing =  .001; /* 1kHz sample rate has a spacing of .001 seconds */
 	double *idp = (double *)malloc(bufsize*sizeof(double)); /* buffer for imaginary time-domain data */
 	double *dp = (double *)malloc(bufsize*sizeof(double)); /* buffer for real time-domain data */
-	double *hp = (double *)malloc(bufsize*sizeof(double));  /* array of values for the Hamming window */
-	short int dir = 1; /* direction of the fourier transform */
+	float *tempdp = (float *)malloc(bufsize*sizeof(double)); /* buffer to hold the floats read into the adc buffer */
+	short int dir = 1; /* direction of the fourier transform */ 
 	long m = 14; /* number of samples in the time domain 2**14 = 16384 */
 	FILE *fftfd; /* file to write output to for verification and visualization */
 	FILE *fitteddata; /* file to write the fitted data output for debugging */
@@ -76,6 +75,11 @@ void main(int argc, char * argv[]) {
 	fftfd = fopen("fftdata", "w");
 	fitteddata = fopen("fitteddata", "w");
 
+	
+	if(rp_Init() != RP_OK){
+		fprintf(stderr, "Rp api init failed!\n");
+	}
+
 	/*generation of signal for testing purposes */
 	rp_GenFreq(RP_CH_1, 500000.0); 
 	
@@ -100,13 +104,20 @@ void main(int argc, char * argv[]) {
 	
 	rp_AcqReset();
 	
-	rp_AcqGetLatestDataV(RP_CH_1, endplace, datai, dp);
+	rp_AcqGetLatestDataV(RP_CH_1, endplace, tempdp);
 	
-	sleep(1);
-	
-	for (i = 0; i < bufferSize; i += 1) {
-		fprintf(stdout, "%f\n", data[i]);
+	/*sleep for the time it takes to write the samples */
+
+
+	for (i=0; i<bufferSize; i++){
+		*(dp + i) = (double) *(tempdp + i);
 	}	
+
+		
+	for (i = 0; i < bufferSize; i += 1) {
+		fprintf(stdout, "%f\n", dp[i]);
+	}
+		
 	/*
 	for (i = 0; i < samples; i +=1) {
 		rp_AcqReset();
@@ -121,13 +132,6 @@ void main(int argc, char * argv[]) {
 		}
 	}
 	*/
-	free(data);
-	rp_Release(); 	
-
-	/* initialize interface */
-	if(rp_Init() != RP_OK){
-		fprintf(stderr, "Rp api init failed!\n");
-	}
 	/* check dp values for debugging  
 	for (i = 0; i < bufsize; i++) {
 		printf("%lf\n", *(dp+i));
@@ -187,6 +191,7 @@ void main(int argc, char * argv[]) {
 	printf("%lu\n", elapsedtime);
 	free(dp);  
 	free(idp); 
+	free(tempdp);
 }	
 
 /* make a domain for the linear fit, simply the numbers 0, 1, ..., bufsize */
