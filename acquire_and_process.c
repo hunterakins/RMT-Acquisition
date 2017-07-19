@@ -12,11 +12,11 @@ These values are passed, along with the data, to Hadamard, a function which take
 */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <redpitaya/rp.h>
 #include <unistd.h>
 #include <math.h>
 #include <gsl/gsl_fit.h>
@@ -25,6 +25,7 @@ These values are passed, along with the data, to Hadamard, a function which take
 #include <time.h>
 #include <cblas.h>
 #include <gsl/gsl_complex.h>
+#include "/opt/redpitaya/include/redpitaya/rp.h"
 
 
 
@@ -57,6 +58,10 @@ gsl_complex gsl_complex_conjugate(gsl_complex z);
 
 
 int main(int argc, char * argv[]) {
+	// 180 ms for rp_Init 
+	if (rp_Init() != RP_OK){
+		fprintf(stderr, "Rp api init failed!\n");
+	}
 	int bufsize = RP_BUF_SIZE;
 	double *idp = (double *)malloc(bufsize*sizeof(double)); /* buffer for imaginary time-domain data */
 	double *dp = (double *)malloc(bufsize*sizeof(double)); /* buffer for real time-domain data */
@@ -70,10 +75,7 @@ int main(int argc, char * argv[]) {
 	gsl_complex *spectrum = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 	gsl_complex *spectrum2 = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 		
-	// 180 ms for rp_Init 
-	if(rp_Init() != RP_OK){
-		fprintf(stderr, "Rp api init failed!\n");
-	}
+	
 
 	struct timespec start;
 	clock_gettime(CLOCK_MONOTONIC, &start);
@@ -102,6 +104,7 @@ int main(int argc, char * argv[]) {
 	rp_AcqSetSamplingRate(sampling_rate);
 
 	DebugDecimation();
+	rp_AcqStart();
 	
 	if (rp_AcqGetLatestDataV(channel, endplace, tempdp) != RP_OK) {
 		printf("error with the acquisition");
@@ -134,7 +137,7 @@ int main(int argc, char * argv[]) {
 
 	/* calculate c0 and c1 for the linear fit of [(0, dp0), (1, dp1), (2, dp2), ... ( bufsize, dpbufsize)]
 	the values of 1 after idp and dp are to indicate the "stride", the spacing between adjacent array elements */ 
-	/* 
+	 
 	// takes 3.7 ms
 	double c0;
 	double c1;
@@ -152,14 +155,16 @@ int main(int argc, char * argv[]) {
 	FILE *fitted_data; 
 	fitted_data = fopen("fitted_data", "w");
 	WriteData(fitted_data, dp, bufsize);	
-
+	FILE *fitted_data2;
+	fitted_data2 = fopen("fitted_data2", "w");
+	WriteData(fitted_data2, dp2, bufsize);
 	// write the window into idp, we use Hamming
 	GenWindow(bufsize, idp);
 
 	// window the data dp with the window function idp 	
 	Hadamard(bufsize, dp, idp); 
 	Hadamard(bufsize, dp2, idp);
-	*/
+	
 	/* calculate fft and write to a file: takes on average less than 70 ms */
 	short int dir = 1; /* direction of the fourier transform */ 
 	long m = 14; /* number of samples in the time domain 2**14 = 16384 */
@@ -215,6 +220,7 @@ int main(int argc, char * argv[]) {
 }	
 
 
+
 int MakeComplexArray(double *dp, double *idp, gsl_complex *spectrum, int bufferSize) {
 	int i;
 	for (i = 0; i < bufferSize; i++) {
@@ -224,11 +230,7 @@ int MakeComplexArray(double *dp, double *idp, gsl_complex *spectrum, int bufferS
 }
 
 int AutoPower(gsl_complex *spectrum, double *power, int bufferSize) {
-	int i;
-	for (i = 0; i < bufferSize; i++) {
-		*(power +i) = gsl_complex_abs(*(spectrum + i));
-	}
-	return 0;
+	return CrossPower(spectrum, spectrum, power, bufferSize); 
 }
 		
 int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, double *crosspower, int bufferSize) {
@@ -356,7 +358,6 @@ void GenWindow(int bufsize, double *hp) {
 /* abstraction for generating a wave for testing */
 int GenWave(rp_channel_t channel, rp_waveform_t waveform, float amp, float freq, float offset) {
 	
-	rp_GenReset();
 	rp_GenAmp(channel, amp);
 	
 
@@ -364,7 +365,7 @@ int GenWave(rp_channel_t channel, rp_waveform_t waveform, float amp, float freq,
 
 	rp_GenWaveform(channel, waveform);
 	
-	if (rp_GenOutEnable(RP_CH_1) != RP_OK) {
+	if (rp_GenOutEnable(channel) != RP_OK) {
 		printf("error with gen output");
 		return -1;
 	}	
