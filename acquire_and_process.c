@@ -26,6 +26,7 @@ These values are passed, along with the data, to Hadamard, a function which take
 #include <cblas.h>
 #include <gsl/gsl_complex.h>
 #include "/opt/redpitaya/include/redpitaya/rp.h"
+#include <pthread.h>
 
 
 
@@ -51,11 +52,12 @@ int PrintVals(double *dp, int numvals);
 int AutoPower(gsl_complex *spectrum, double *power, int bufferSize);
 int MakeComplexArray(double *dp, double *idp, gsl_complex *spectrum, int bufsize);
 double gsl_complex_abs(gsl_complex z);
-int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, double *crosspower, int bufferSize);
+int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, gsl_complex *crosspower, int bufferSize);
 gsl_complex gsl_complex_mul(gsl_complex a, gsl_complex b);
 gsl_complex gsl_complex_conjugate(gsl_complex z);	 
-int Coherency(int bufferSize, double *crosspower, double *autopower, double *autopower2, double *coherency);
-
+int Coherency(int bufferSize, gsl_complex *crosspower, double *autopower, double *autopower2, double *coherency);
+int GetRealArray(gsl_complex *array, double * real, int bufferSize);
+int WriteSpectralData(FILE *fd, double *autopower, double *autopower2, gsl_complex * crosspower, double *coherency, int numvals);
 
 int main(int argc, char * argv[]) {
 	// 180 ms for rp_Init 
@@ -66,13 +68,13 @@ int main(int argc, char * argv[]) {
 	double *idp = (double *)malloc(bufsize*sizeof(double)); /* buffer for imaginary time-domain data */
 	double *dp = (double *)malloc(bufsize*sizeof(double)); /* buffer for real time-domain data */
 	float *tempdp = (float *)malloc(bufsize*sizeof(float)); /* buffer to hold the floats read into the adc buffer */
-	double *autopower = (double *)malloc(bufsize*sizeof(double));
-	double *crosspower = (double *)malloc(bufsize*sizeof(double));
+	double *autopower = (double *)malloc(bufsize*sizeof(double)/2); //divide by 2 because nyquist limit, real input is symmetric about nyquist
+	gsl_complex *crosspower = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 	double *idp2 = (double *)malloc(bufsize*sizeof(double)); /* buffer for imaginary time-domain data */
 	double *dp2 = (double *)malloc(bufsize*sizeof(double)); /* buffer for real time-domain data */
 	float *tempdp2 = (float *)malloc(bufsize*sizeof(float)); /* buffer to hold the floats read into the adc buffer */
-	double *autopower2 = (double *)malloc(bufsize*sizeof(double));
-	double *coherency = (double *)malloc(bufsize*sizeof(double));
+	double *autopower2 = (double *)malloc(bufsize*sizeof(double) / 2);
+	double *coherency = (double *)malloc(bufsize*sizeof(double) / 2);
 	gsl_complex *spectrum = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 	gsl_complex *spectrum2 = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 		
@@ -84,8 +86,8 @@ int main(int argc, char * argv[]) {
 	// generate a wave to test the acquisition 	
 	rp_waveform_t waveform = RP_WAVEFORM_SINE;
 	rp_channel_t channel = RP_CH_1;
-	float amplitude = 0.5;
-	float freq = 51000;
+	float amplitude = 1;
+	float freq = 30000;
 	float offset = 0;	
 
 	if (GenWave(channel, waveform, amplitude, freq, offset) != 0) {
@@ -100,17 +102,18 @@ int main(int argc, char * argv[]) {
 	printf("%u\n", bufferSize);	
 	
 	
-	//rp_AcqReset();
-	rp_acq_sampling_rate_t sampling_rate = RP_SMP_122_070K;	
+	rp_AcqReset();
+	//OPtions: 1_970K, 15_258K, 122_070K, 1_953M, 15_625M, 125M 
+	rp_acq_sampling_rate_t sampling_rate = RP_SMP_1_953M;	
 	rp_AcqSetSamplingRate(sampling_rate);
 
 	DebugDecimation();
 	rp_AcqStart();
-	
+	sleep(1);
 	if (rp_AcqGetLatestDataV(channel, endplace, tempdp) != RP_OK) {
 		printf("error with the acquisition");
 	}
-	
+	sleep(1);
 	rp_channel_t channelb = RP_CH_2;
 	if (rp_AcqGetLatestDataV(channelb, endplace, tempdp2) != RP_OK) {
 		printf("error with the acquisition");
@@ -184,25 +187,14 @@ int main(int argc, char * argv[]) {
 	MakeComplexArray(dp, idp, spectrum, bufferSize/2);
 	MakeComplexArray(dp2, idp2, spectrum2, bufferSize/2);
 	AutoPower(spectrum, autopower, bufferSize/2);
+	PrintVals(autopower, bufferSize / 2);
 	AutoPower(spectrum2, autopower2, bufferSize/2);
-	
-	FILE *fautopower;
-	fautopower = fopen("autopower", "w");
-	WriteData(fautopower, autopower, bufferSize/2);
-
-	FILE *fautopower2;
-	fautopower2 = fopen("autopower2", "w");
-	WriteData(fautopower2, autopower2, bufferSize/2);	
-
 	CrossPower(spectrum, spectrum2, crosspower,  bufferSize/2);
-	FILE *crossp;
-	crossp = fopen("crosspower", "w");
-	WriteData(crossp, crosspower, bufferSize / 2);
-
 	Coherency(bufferSize / 2, crosspower, autopower, autopower2, coherency);
-	FILE *coherence;
-	coherence = fopen("coherency", "w");
-	WriteData(coherence, coherency, bufferSize / 2);
+	FILE *specdata;
+	specdata = fopen("spectraldata", "w");
+	WriteSpectralData(specdata, autopower, autopower2, crosspower, coherency, bufferSize /2);
+
 	// free buffers
 	free(dp);  
 	free(idp); 
@@ -226,7 +218,13 @@ int main(int argc, char * argv[]) {
 	return 0;
 }	
 
-
+int GetRealArray(gsl_complex *array, double * real, int bufferSize) {
+	int i;
+	for (i = 0; i < bufferSize; i++) {
+		*(real+i) = GSL_REAL(*(array+i));
+	} 
+	return 0;
+}
 
 int MakeComplexArray(double *dp, double *idp, gsl_complex *spectrum, int bufferSize) {
 	int i;
@@ -237,28 +235,41 @@ int MakeComplexArray(double *dp, double *idp, gsl_complex *spectrum, int bufferS
 }
 
 int AutoPower(gsl_complex *spectrum, double *power, int bufferSize) {
-	return CrossPower(spectrum, spectrum, power, bufferSize); 
-}
-		
-int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, double *crosspower, int bufferSize) {
 	int i;
+	double pow;
 	for (i = 0; i < bufferSize; i++) {
-		*(crosspower + i) = GSL_REAL(gsl_complex_mul(*(spectrum + i), gsl_complex_conjugate(*(spectrum2 + i))));
+		pow = 1000000* gsl_complex_abs(*(spectrum + i));
+		pow = pow * pow;
+		*(power + i) = pow;
 	}
 	return 0;
 }
 		
-int Coherency(int bufferSize, double *crosspower, double *autopower, double *autopower2, double *coherency) {
+int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, gsl_complex *crosspower, int bufferSize) {
 	int i;
 	for (i = 0; i < bufferSize; i++) {
-		if ((*(autopower +i) == 0) || ((*autopower2 + i) == 0 )) {
+		*(crosspower + i) = gsl_complex_mul(*(spectrum + i), gsl_complex_conjugate(*(spectrum2 + i)));
+	}
+	return 0;
+}
+		
+int Coherency(int bufferSize, gsl_complex *crosspower, double *autopower, double *autopower2, double *coherency) {
+	int i;
+	double num;
+	double denom;
+	for (i = 0; i < bufferSize; i++) {
+		num = 1000000*gsl_complex_abs(*(crosspower + i));
+		num = 1000000000000* num * num;
+		denom = *(autopower + i) * *(autopower2 + i);
+		if (denom == (double) 0) {
 			*(coherency + i) = 0;
 		}
 		else {
-			*(coherency + i) = *(crosspower + i) * *(crosspower + i) / *(autopower + i) / *(autopower +i) ;
-		}
+			*(coherency + i) = num / denom;
+		} 
 	}
 	return 0;
+
 }
 //write data to stdout for debugging
 int PrintVals(double *dp, int numvals) {
@@ -290,6 +301,13 @@ int WriteFFTData(FILE *fd, double *dp, double *idp, int numvals) {
 	return 0;
 }
 
+int WriteSpectralData(FILE *fd, double *autopower, double *autopower2, gsl_complex * crosspower, double *coherency, int numvals) {
+	int i;
+	for (i=0;i<numvals; i++) {
+		fprintf(fd, "%lf\t%lf\t%lf\t%lf\t%lf\n", *(autopower + i), *(autopower2 + i), 1000000000000*GSL_REAL(*(crosspower + i)), 1000000000000*GSL_IMAG(*(crosspower + i)), *(coherency + i));
+	}
+	return 0;
+}
 
 int WriteData(FILE *fd, double *dp, int numvals) {
 	int i;
