@@ -1,0 +1,28 @@
+Gen wave timeTime elapsed = 19543898
+16384
+decimation level=1372019968
+acq start timeTime elapsed = 11423315
+sleeptimeTime elapsed = 99516
+float to doubleTime elapsed = 1379045
+write input data Time elapsed = 82902965
+0.126141	0.000000	make domain and fitTime elapsed = 10447275
+window
+Time elapsed = 7796833
+write windowed data 
+Time elapsed = 89194631
+compute ffts 
+Time elapsed = 71472741
+write fft data
+Time elapsed = 74002220
+concatenate fft data into complex arrays 
+Time elapsed = 1236732
+compute autopower 
+Time elapsed = 8858284
+compute cross power
+Time elapsed = 1764333
+compute coherency
+Time elapsed = 4832098
+write spectral data 
+Time elapsed = 91754652
+free my buffer
+Time elapsed = 306671

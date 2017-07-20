@@ -94,6 +94,10 @@ int main(int argc, char * argv[]) {
 		printf("yikes, error with wave generation");
 	}
 
+	printf("Gen wave time");
+	PrintTime(start);
+
+	clock_gettime(CLOCK_MONOTONIC, &start);
 
 	uint32_t bufferSize = RP_BUF_SIZE;
 	uint32_t *endplace;
@@ -109,21 +113,34 @@ int main(int argc, char * argv[]) {
 
 	DebugDecimation();
 	rp_AcqStart();
-	sleep(1);
+	
+
+		
 	if (rp_AcqGetLatestDataV(channel, endplace, tempdp) != RP_OK) {
 		printf("error with the acquisition");
 	}
-	sleep(1);
 	rp_channel_t channelb = RP_CH_2;
 	if (rp_AcqGetLatestDataV(channelb, endplace, tempdp2) != RP_OK) {
 		printf("error with the acquisition");
 	}
-		
+	printf("acq start time");	
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	
 	/*sleep for the time it takes to write the samples */
 	sleep(.1);
-
+	printf("sleeptime");
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	FloatToDouble(dp, tempdp, bufferSize);
 	FloatToDouble(dp2, tempdp2, bufferSize);
+	printf("float to double");	
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
+
 	FILE *input_data;
 	FILE *input_data2;
 	input_data = fopen("input_data", "w");
@@ -131,6 +148,11 @@ int main(int argc, char * argv[]) {
 	
 	WriteData(input_data, dp, bufferSize);
 	WriteData(input_data2, dp2, bufferSize);
+	printf("write input data ");
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	
 	//PrintVals(dp2, bufferSize);
 
 	/* get a domain for the linear fit: takes around 600 us */
@@ -156,13 +178,24 @@ int main(int argc, char * argv[]) {
 	FirstOrderCorrect(bufsize, c0, c1, dp);
 	gsl_fit_linear(idp, 1, dp2, 1, (size_t) bufsize, &c0, &c1,  &cov00, &cov01, &cov11, &sumsq);
 	FirstOrderCorrect(bufsize, c0, c1, dp2);
+
+	printf("make domain and fit");
+
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	// write the window into idp, we use Hamming
 	GenWindow(bufsize, idp);
 
 	// window the data dp with the window function idp 	
 	Hadamard(bufsize, dp, idp); 
 	Hadamard(bufsize, dp2, idp);
+
+	printf("window\n");
 	
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	FILE *fitted_data; 
 	fitted_data = fopen("fitted_data", "w");
 	WriteData(fitted_data, dp, bufsize);	
@@ -171,11 +204,21 @@ int main(int argc, char * argv[]) {
 	fitted_data2 = fopen("fitted_data2", "w");
 	WriteData(fitted_data2, dp2, bufsize);
 	/* calculate fft and write to a file: takes on average less than 70 ms */
+	printf("write windowed data \n");
+	
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
+
 	short int dir = 1; /* direction of the fourier transform */ 
 	long m = 14; /* number of samples in the time domain 2**14 = 16384 */
 	FFT(dir, m, dp, idp); 
 	FFT(dir, m, dp2, idp2); 
+	printf("compute ffts \n");
+
+	PrintTime(start);
 	
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	FILE *fft; 
 	fft = fopen("fft_data", "w");
 	WriteFFTData(fft, dp, idp, bufsize/2);	
@@ -183,17 +226,50 @@ int main(int argc, char * argv[]) {
 	FILE *fft2; 
 	fft2 = fopen("fft_data2", "w");
 	WriteFFTData(fft2, dp2, idp2, bufsize/2);	
+	printf("write fft data\n");
+		
+	PrintTime(start);
 	
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	MakeComplexArray(dp, idp, spectrum, bufferSize/2);
 	MakeComplexArray(dp2, idp2, spectrum2, bufferSize/2);
+	printf("concatenate fft data into complex arrays \n");
+	
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	
 	AutoPower(spectrum, autopower, bufferSize/2);
-	PrintVals(autopower, bufferSize / 2);
 	AutoPower(spectrum2, autopower2, bufferSize/2);
+	printf("compute autopower \n");
+
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
+
 	CrossPower(spectrum, spectrum2, crosspower,  bufferSize/2);
+	printf("compute cross power\n");
+	
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
+
 	Coherency(bufferSize / 2, crosspower, autopower, autopower2, coherency);
+	
+	printf("compute coherency\n");
+	
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
+
 	FILE *specdata;
 	specdata = fopen("spectraldata", "w");
 	WriteSpectralData(specdata, autopower, autopower2, crosspower, coherency, bufferSize /2);
+	printf("write spectral data \n");
+	
+	PrintTime(start);
+	
+	clock_gettime(CLOCK_MONOTONIC, &start);
 
 	// free buffers
 	free(dp);  
@@ -209,6 +285,7 @@ int main(int argc, char * argv[]) {
 	free(crosspower);
 	free(coherency);
 	// Print time elapsed since the clock_gettime(CLOCK_MONOTONIC, &start call) 	
+	printf("free my buffer\n");
 	PrintTime(start);
 	
 	//release resources
