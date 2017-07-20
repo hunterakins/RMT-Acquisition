@@ -54,7 +54,7 @@ double gsl_complex_abs(gsl_complex z);
 int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, double *crosspower, int bufferSize);
 gsl_complex gsl_complex_mul(gsl_complex a, gsl_complex b);
 gsl_complex gsl_complex_conjugate(gsl_complex z);	 
-
+int Coherency(int bufferSize, double *crosspower, double *autopower, double *autopower2, double *coherency);
 
 
 int main(int argc, char * argv[]) {
@@ -72,6 +72,7 @@ int main(int argc, char * argv[]) {
 	double *dp2 = (double *)malloc(bufsize*sizeof(double)); /* buffer for real time-domain data */
 	float *tempdp2 = (float *)malloc(bufsize*sizeof(float)); /* buffer to hold the floats read into the adc buffer */
 	double *autopower2 = (double *)malloc(bufsize*sizeof(double));
+	double *coherency = (double *)malloc(bufsize*sizeof(double));
 	gsl_complex *spectrum = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 	gsl_complex *spectrum2 = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 		
@@ -84,7 +85,7 @@ int main(int argc, char * argv[]) {
 	rp_waveform_t waveform = RP_WAVEFORM_SINE;
 	rp_channel_t channel = RP_CH_1;
 	float amplitude = 0.5;
-	float freq = 15000;
+	float freq = 51000;
 	float offset = 0;	
 
 	if (GenWave(channel, waveform, amplitude, freq, offset) != 0) {
@@ -127,7 +128,7 @@ int main(int argc, char * argv[]) {
 	
 	WriteData(input_data, dp, bufferSize);
 	WriteData(input_data2, dp2, bufferSize);
-	// PrintVals(dp, bufferSize);
+	//PrintVals(dp2, bufferSize);
 
 	/* get a domain for the linear fit: takes around 600 us */
 	MakeDomain(bufsize, idp);
@@ -150,14 +151,8 @@ int main(int argc, char * argv[]) {
 	// get rid of DC and linear trends in the data
 	// 
 	FirstOrderCorrect(bufsize, c0, c1, dp);
-	gsl_fit_linear(idp2, 1, dp2, 1, (size_t) bufsize, &c0, &c1,  &cov00, &cov01, &cov11, &sumsq);
+	gsl_fit_linear(idp, 1, dp2, 1, (size_t) bufsize, &c0, &c1,  &cov00, &cov01, &cov11, &sumsq);
 	FirstOrderCorrect(bufsize, c0, c1, dp2);
-	FILE *fitted_data; 
-	fitted_data = fopen("fitted_data", "w");
-	WriteData(fitted_data, dp, bufsize);	
-	FILE *fitted_data2;
-	fitted_data2 = fopen("fitted_data2", "w");
-	WriteData(fitted_data2, dp2, bufsize);
 	// write the window into idp, we use Hamming
 	GenWindow(bufsize, idp);
 
@@ -165,6 +160,13 @@ int main(int argc, char * argv[]) {
 	Hadamard(bufsize, dp, idp); 
 	Hadamard(bufsize, dp2, idp);
 	
+	FILE *fitted_data; 
+	fitted_data = fopen("fitted_data", "w");
+	WriteData(fitted_data, dp, bufsize);	
+	
+	FILE *fitted_data2;
+	fitted_data2 = fopen("fitted_data2", "w");
+	WriteData(fitted_data2, dp2, bufsize);
 	/* calculate fft and write to a file: takes on average less than 70 ms */
 	short int dir = 1; /* direction of the fourier transform */ 
 	long m = 14; /* number of samples in the time domain 2**14 = 16384 */
@@ -197,6 +199,10 @@ int main(int argc, char * argv[]) {
 	crossp = fopen("crosspower", "w");
 	WriteData(crossp, crosspower, bufferSize / 2);
 
+	Coherency(bufferSize / 2, crosspower, autopower, autopower2, coherency);
+	FILE *coherence;
+	coherence = fopen("coherency", "w");
+	WriteData(coherence, coherency, bufferSize / 2);
 	// free buffers
 	free(dp);  
 	free(idp); 
@@ -209,6 +215,7 @@ int main(int argc, char * argv[]) {
 	free(spectrum2);	
 	free(autopower2);
 	free(crosspower);
+	free(coherency);
 	// Print time elapsed since the clock_gettime(CLOCK_MONOTONIC, &start call) 	
 	PrintTime(start);
 	
@@ -241,7 +248,18 @@ int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, double *crosspower
 	return 0;
 }
 		
-
+int Coherency(int bufferSize, double *crosspower, double *autopower, double *autopower2, double *coherency) {
+	int i;
+	for (i = 0; i < bufferSize; i++) {
+		if ((*(autopower +i) == 0) || ((*autopower2 + i) == 0 )) {
+			*(coherency + i) = 0;
+		}
+		else {
+			*(coherency + i) = *(crosspower + i) * *(crosspower + i) / *(autopower + i) / *(autopower +i) ;
+		}
+	}
+	return 0;
+}
 //write data to stdout for debugging
 int PrintVals(double *dp, int numvals) {
 	int i = 0;
