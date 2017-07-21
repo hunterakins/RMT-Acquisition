@@ -58,6 +58,24 @@ gsl_complex gsl_complex_conjugate(gsl_complex z);
 int Coherency(int bufferSize, gsl_complex *crosspower, double *autopower, double *autopower2, double *coherency);
 int GetRealArray(gsl_complex *array, double * real, int bufferSize);
 int WriteSpectralData(FILE *fd, double *autopower, double *autopower2, gsl_complex * crosspower, double *coherency, int numvals);
+void * Process(void * datastruct);
+int WriteAllData(FILE * fd, double *inputdata, double * fit_and_window, gsl_complex * spectrum, double * autopower, int len);
+
+
+typedef struct Data {
+	int buf_size;
+	FILE *fd;
+	double *idp;
+	double *dp;
+	float *tempdp;
+	double *autopower;
+	gsl_complex *crosspower;
+	double *coherency;
+	gsl_complex *spectrum;
+	int id;
+} Data;
+
+
 
 int main(int argc, char * argv[]) {
 	// 180 ms for rp_Init 
@@ -78,7 +96,6 @@ int main(int argc, char * argv[]) {
 	gsl_complex *spectrum = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 	gsl_complex *spectrum2 = (gsl_complex *)malloc(bufsize*sizeof(gsl_complex)/2);
 		
-	
 
 	struct timespec start;
 	clock_gettime(CLOCK_MONOTONIC, &start);
@@ -123,153 +140,50 @@ int main(int argc, char * argv[]) {
 	if (rp_AcqGetLatestDataV(channelb, endplace, tempdp2) != RP_OK) {
 		printf("error with the acquisition");
 	}
-	printf("acq start time");	
-	PrintTime(start);
 	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	
-	/*sleep for the time it takes to write the samples, don't have problem with dual acquistion...I figure that the second acquisition gives time for first to finish, then float to double gives enouguh time for the next to finish? */
-	printf("sleeptime");
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	FloatToDouble(dp, tempdp, bufferSize);
-	FloatToDouble(dp2, tempdp2, bufferSize);
-	printf("float to double");	
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
+	struct Data Channel1;
 
-	FILE *input_data;
-	FILE *input_data2;
-	input_data = fopen("input_data", "w");
-	input_data2 = fopen("input_data2", "w");
-	
-	WriteData(input_data, dp, bufferSize);
-	WriteData(input_data2, dp2, bufferSize);
-	printf("write input data ");
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	
-	//PrintVals(dp2, bufferSize);
+	FILE *file1;
+	int id1 = 1;
 
-	/* get a domain for the linear fit: takes around 600 us */
-	MakeDomain(bufsize, idp);
-	
+	file1 = fopen("channel1", "w");
 
-	// PrintVals(idp, bufferSize);	
+	Channel1.buf_size = bufsize;
+	Channel1.fd = file1;
+	Channel1.idp = idp;
+	Channel1.dp = dp;
+	Channel1.tempdp = tempdp;
+	Channel1.autopower = autopower;
+	Channel1.crosspower = crosspower;
+	Channel1.spectrum = spectrum;
+	Channel1.id = id1;
+	
+	struct Data Channel2;
 
-	/* calculate c0 and c1 for the linear fit of [(0, dp0), (1, dp1), (2, dp2), ... ( bufsize, dpbufsize)]
-	the values of 1 after idp and dp are to indicate the "stride", the spacing between adjacent array elements */ 
-	 
-	// takes 3.7 ms
-	double c0;
-	double c1;
-	double cov00;
-	double cov01;
-	double cov11;
-	double sumsq;
-	gsl_fit_linear(idp, 1, dp, 1, (size_t) bufsize, &c0, &c1,  &cov00, &cov01, &cov11, &sumsq);
-	printf("%lf\t%lf\t", c0, c1);	
-	// get rid of DC and linear trends in the data
-	// 
-	FirstOrderCorrect(bufsize, c0, c1, dp);
-	gsl_fit_linear(idp, 1, dp2, 1, (size_t) bufsize, &c0, &c1,  &cov00, &cov01, &cov11, &sumsq);
-	FirstOrderCorrect(bufsize, c0, c1, dp2);
 
-	printf("make domain and fit");
+	FILE *file2; 
+	int id2 = 2;
 
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	// write the window into idp, we use Hamming
-	GenWindow(bufsize, idp);
+	file2 = fopen("channel2", "w");
 
-	// window the data dp with the window function idp 	
-	Hadamard(bufsize, dp, idp); 
-	Hadamard(bufsize, dp2, idp);
+	Channel2.buf_size = bufsize;
+	Channel2.fd = file2;
+	Channel2.idp = idp2;
+	Channel2.dp = dp2;
+	Channel2.tempdp = tempdp2;
+	Channel2.autopower = autopower2;
+	Channel2.crosspower = crosspower;
+	Channel2.spectrum = spectrum2;
+	Channel2.id = id2;
 
-	printf("window\n");
+	pthread_t thread1;
+	pthread_t thread2;
 	
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	FILE *fitted_data; 
-	fitted_data = fopen("fitted_data", "w");
-	WriteData(fitted_data, dp, bufsize);	
-	
-	FILE *fitted_data2;
-	fitted_data2 = fopen("fitted_data2", "w");
-	WriteData(fitted_data2, dp2, bufsize);
-	/* calculate fft and write to a file: takes on average less than 70 ms */
-	printf("write windowed data \n");
-	
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
+	pthread_create(&thread1, NULL, Process, &Channel1);
+	pthread_create(&thread2, NULL, Process, &Channel2);
 
-	short int dir = 1; /* direction of the fourier transform */ 
-	long m = 14; /* number of samples in the time domain 2**14 = 16384 */
-	FFT(dir, m, dp, idp); 
-	FFT(dir, m, dp2, idp2); 
-	printf("compute ffts \n");
-
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	FILE *fft; 
-	fft = fopen("fft_data", "w");
-	WriteFFTData(fft, dp, idp, bufsize/2);	
-
-	FILE *fft2; 
-	fft2 = fopen("fft_data2", "w");
-	WriteFFTData(fft2, dp2, idp2, bufsize/2);	
-	printf("write fft data\n");
-		
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	MakeComplexArray(dp, idp, spectrum, bufferSize/2);
-	MakeComplexArray(dp2, idp2, spectrum2, bufferSize/2);
-	printf("concatenate fft data into complex arrays \n");
-	
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	
-	AutoPower(spectrum, autopower, bufferSize/2);
-	AutoPower(spectrum2, autopower2, bufferSize/2);
-	printf("compute autopower \n");
-
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-
-	CrossPower(spectrum, spectrum2, crosspower,  bufferSize/2);
-	printf("compute cross power\n");
-	
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-
-	Coherency(bufferSize / 2, crosspower, autopower, autopower2, coherency);
-	
-	printf("compute coherency\n");
-	
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-
-	FILE *specdata;
-	specdata = fopen("spectraldata", "w");
-	WriteSpectralData(specdata, autopower, autopower2, crosspower, coherency, bufferSize /2);
-	printf("write spectral data \n");
-	
-	PrintTime(start);
-	
-	clock_gettime(CLOCK_MONOTONIC, &start);
-
+	pthread_join(thread1, NULL);
+	pthread_join(thread2, NULL);
 	// free buffers
 	free(dp);  
 	free(idp); 
@@ -291,6 +205,77 @@ int main(int argc, char * argv[]) {
 	rp_Release();
 	
 
+	return 0;
+}	
+
+
+
+
+
+void * Process(void * Data_Struct) {
+	struct Data *d;
+	d = (struct Data *) Data_Struct;
+	int bufferSize = (*d).buf_size;
+	
+	float * tempdp;
+	double * idp;
+	double * dp;
+	double * autopower;
+	gsl_complex * spectrum;
+	int id;
+	FILE *fd;
+	
+	// get arrays
+	tempdp = (*d).tempdp;
+	idp = (*d).idp;
+	dp = (*d).dp;
+	autopower = (*d).autopower;
+	spectrum = (*d).spectrum;
+	id = (*d).id;
+	fd = (*d).fd;
+	FloatToDouble((*d).dp, tempdp, bufferSize) ;
+	MakeDomain(bufferSize, idp);
+
+	/* calculate c0 and c1 for the linear fit of [(0, dp0), (1, dp1), (2, dp2), ... ( bufsize, dpbufsize)]
+	the values of 1 after idp and dp are to indicate the "stride", the spacing between adjacent array elements */ 
+	 
+	// takes 3.7 ms
+	double c0;
+	double c1;
+	double cov00;
+	double cov01;
+	double cov11;
+	double sumsq;
+	gsl_fit_linear(idp, 1, dp, 1, (size_t) bufferSize, &c0, &c1,  &cov00, &cov01, &cov11, &sumsq);
+	printf("fit + %d\n", id); 	
+	FirstOrderCorrect(bufferSize, c0, c1, dp);
+	printf("correct + %d\n", id); 	
+	GenWindow(bufferSize, idp);
+
+	printf("windows + %d\n", id); 	
+	// window the data dp with the window function idp 	
+	Hadamard(bufferSize, dp, idp); 
+
+	printf("had + %d\n", id); 	
+	short int dir = 1; /* direction of the fourier transform */ 
+	long m = 14; /* number of samples in the time domain 2**14 = 16384 */
+	FFT(dir, m, dp, idp); 
+	printf("fft + %d\n", id); 	
+		
+	MakeComplexArray(dp, idp, spectrum, bufferSize/2);
+	
+	AutoPower(spectrum, autopower, bufferSize/2);
+
+	WriteAllData(fd, dp, dp, spectrum, autopower, bufferSize);
+	
+	return NULL;
+}
+
+int WriteAllData(FILE * fd, double *inputdata, double * fit_and_window, gsl_complex * spectrum, double * autopower, int len) {
+	int i = 0;
+	for (i = 0; i < len / 2; i++) {
+		fprintf(fd, "%lf\t%lf\t%lf\t%lf\t%lf\n", *(inputdata + i), *(fit_and_window + i), GSL_REAL(*(spectrum +i)), GSL_IMAG(*(spectrum +i)), *(autopower +i));
+	}
 	return 0;
 }	
 
