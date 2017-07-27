@@ -84,16 +84,17 @@ int main(int argc, char * argv[]) {
 	clock_gettime(CLOCK_MONOTONIC, &start);
 
 	// generate a wave to test the acquisition 	
-	rp_waveform_t waveform = RP_WAVEFORM_SINE;
+	//rp_waveform_t waveform = RP_WAVEFORM_SINE;
 	rp_channel_t channel = RP_CH_1;
+	/*
 	float amplitude = 1;
 	float freq = 30000;
 	float offset = 0;	
-
+	
 	if (GenWave(channel, waveform, amplitude, freq, offset) != 0) {
 		printf("yikes, error with wave generation");
 	}
-
+*/
 	printf("Gen wave time");
 	PrintTime(start);
 
@@ -108,7 +109,7 @@ int main(int argc, char * argv[]) {
 	
 	rp_AcqReset();
 	//OPtions: 1_970K, 15_258K, 122_070K, 1_953M, 15_625M, 125M 
-	rp_acq_sampling_rate_t sampling_rate = RP_SMP_1_953M;	
+	rp_acq_sampling_rate_t sampling_rate = RP_SMP_122_070K;	
 	rp_AcqSetSamplingRate(sampling_rate);
 
 	DebugDecimation();
@@ -142,8 +143,8 @@ int main(int argc, char * argv[]) {
 
 	FILE *input_data;
 	FILE *input_data2;
-	input_data = fopen("input_data", "w");
-	input_data2 = fopen("input_data2", "w");
+	input_data = fopen("Data/input_data", "w");
+	input_data2 = fopen("Data/input_data2", "w");
 	
 	WriteData(input_data, dp, bufferSize);
 	WriteData(input_data2, dp2, bufferSize);
@@ -196,11 +197,11 @@ int main(int argc, char * argv[]) {
 	
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	FILE *fitted_data; 
-	fitted_data = fopen("fitted_data", "w");
+	fitted_data = fopen("Data/fitted_data", "w");
 	WriteData(fitted_data, dp, bufsize);	
 	
 	FILE *fitted_data2;
-	fitted_data2 = fopen("fitted_data2", "w");
+	fitted_data2 = fopen("Data/fitted_data2", "w");
 	WriteData(fitted_data2, dp2, bufsize);
 	/* calculate fft and write to a file: takes on average less than 70 ms */
 	printf("write windowed data \n");
@@ -219,11 +220,11 @@ int main(int argc, char * argv[]) {
 	
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	FILE *fft; 
-	fft = fopen("fft_data", "w");
+	fft = fopen("Data/fft_data", "w");
 	WriteFFTData(fft, dp, idp, bufsize/2);	
 
 	FILE *fft2; 
-	fft2 = fopen("fft_data2", "w");
+	fft2 = fopen("Data/fft_data2", "w");
 	WriteFFTData(fft2, dp2, idp2, bufsize/2);	
 	printf("write fft data\n");
 		
@@ -262,7 +263,7 @@ int main(int argc, char * argv[]) {
 	clock_gettime(CLOCK_MONOTONIC, &start);
 
 	FILE *specdata;
-	specdata = fopen("spectraldata", "w");
+	specdata = fopen("Data/spectraldata", "w");
 	WriteSpectralData(specdata, autopower, autopower2, crosspower, coherency, bufferSize /2);
 	printf("write spectral data \n");
 	

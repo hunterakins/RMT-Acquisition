@@ -49,12 +49,13 @@ int WriteData(FILE *fd, double *dp, int numvals);
 int FloatToDouble(double *dp, float *tmpdp, int length);
 int DebugDecimation(void);
 int PrintVals(double *dp, int numvals);
-int AutoPower(gsl_complex *spectrum, double *power, int bufferSize);
+int AccAutoPower(gsl_complex *spectrum, double *power, int bufferSize);
 int MakeComplexArray(double *dp, double *idp, gsl_complex *spectrum, int bufsize);
 double gsl_complex_abs(gsl_complex z);
-int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, gsl_complex *crosspower, int bufferSize);
+int AccCrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, gsl_complex *crosspower, int bufferSize);
 gsl_complex gsl_complex_mul(gsl_complex a, gsl_complex b);
 gsl_complex gsl_complex_conjugate(gsl_complex z);	 
+gsl_complex gsl_complex_add(gsl_complex z1, gsl_complex z2);
 int Coherency(int bufferSize, gsl_complex *crosspower, double *autopower, double *autopower2, double *coherency);
 int GetRealArray(gsl_complex *array, double * real, int bufferSize);
 int WriteSpectralData(FILE *fd, double *autopower, double *autopower2, gsl_complex * crosspower, double *coherency, int numvals);
@@ -69,7 +70,6 @@ typedef struct Data {
 	double *dp;
 	float *tempdp;
 	double *autopower;
-	gsl_complex *crosspower;
 	double *coherency;
 	gsl_complex *spectrum;
 	int id;
@@ -111,8 +111,10 @@ int main(int argc, char * argv[]) {
 
 
 	// generate a wave to test the acquisition 	
-	rp_waveform_t waveform = RP_WAVEFORM_SINE;
+	
+	//rp_waveform_t waveform = RP_WAVEFORM_SINE;
 	rp_channel_t channel = RP_CH_1;
+	/*
 	float amplitude = 1;
 	float freq = 30000;
 	float offset = 0;	
@@ -120,7 +122,7 @@ int main(int argc, char * argv[]) {
 	if (GenWave(channel, waveform, amplitude, freq, offset) != 0) {
 		printf("yikes, error with wave generation");
 	}
-
+	*/
 	printf("Init and gen wave time");
 	PrintTime(start);
 
@@ -135,7 +137,7 @@ int main(int argc, char * argv[]) {
 	
 	rp_AcqReset();
 	//OPtions: 1_970K, 15_258K, 122_070K, 1_953M, 15_625M, 125M 
-	rp_acq_sampling_rate_t sampling_rate = RP_SMP_1_953M;	
+	rp_acq_sampling_rate_t sampling_rate = RP_SMP_122_070K;	
 	rp_AcqSetSamplingRate(sampling_rate);
 
 	DebugDecimation();
@@ -143,66 +145,74 @@ int main(int argc, char * argv[]) {
 
 	sleep(1);	//avoid synchronization error, not sure if it's from scp files that are being written or what...
 		
-	if (rp_AcqGetLatestDataV(channel, endplace, tempdp) != RP_OK) {
-		printf("error with the acquisition");
+	int  i = 0;
+	for (i = 0; i < 10; i ++) {		
+		printf("here/n");
+		if (rp_AcqGetLatestDataV(channel, endplace, tempdp) != RP_OK) {
+			printf("error with the acquisition");
+		}
+		rp_channel_t channelb = RP_CH_2;
+		if (rp_AcqGetLatestDataV(channelb, endplace, tempdp2) != RP_OK) {
+			printf("error with the acquisition");
+		}
+		
+		struct Data Channel1;
+
+		FILE *file1;
+		int id1 = 1;
+
+		file1 = fopen("channel1", "w");
+
+		Channel1.buf_size = bufsize;
+		Channel1.fd = file1;
+		Channel1.idp = idp;
+		Channel1.dp = dp;
+		Channel1.tempdp = tempdp;
+		Channel1.autopower = autopower;
+		Channel1.spectrum = spectrum;
+		Channel1.id = id1;
+		Channel1.realf = realf;
+		Channel1.imf = imf;
+		Channel1.wind = wind;	
+		struct Data Channel2;
+
+
+		FILE *file2; 
+		int id2 = 2;
+
+		file2 = fopen("channel2", "w");
+
+		Channel2.buf_size = bufsize;
+		Channel2.fd = file2;
+		Channel2.idp = idp2;
+		Channel2.dp = dp2;
+		Channel2.tempdp = tempdp2;
+		Channel2.autopower = autopower2;
+		Channel2.spectrum = spectrum2;
+		Channel2.id = id2;
+		Channel2.wind = wind2;
+		Channel2.realf = realf2;
+		Channel2.imf = imf2;
+
+		pthread_t thread1;
+		pthread_t thread2;
+		printf("%lf\n", GSL_REAL(crosspower[0]));
+		
+		pthread_create(&thread1, NULL, Process, &Channel1);
+		pthread_create(&thread2, NULL, Process, &Channel2);
+		AccCrossPower(Channel1.spectrum, Channel2.spectrum, crosspower, bufferSize / 2);
+		printf("%lf\n", GSL_REAL(crosspower[0]));
+		pthread_join(thread1, NULL);
+		pthread_join(thread2, NULL);
+
+		
+		
+
 	}
-	rp_channel_t channelb = RP_CH_2;
-	if (rp_AcqGetLatestDataV(channelb, endplace, tempdp2) != RP_OK) {
-		printf("error with the acquisition");
-	}
-	
-	struct Data Channel1;
-
-	FILE *file1;
-	int id1 = 1;
-
-	file1 = fopen("channel1", "w");
-
-	Channel1.buf_size = bufsize;
-	Channel1.fd = file1;
-	Channel1.idp = idp;
-	Channel1.dp = dp;
-	Channel1.tempdp = tempdp;
-	Channel1.autopower = autopower;
-	Channel1.crosspower = crosspower;
-	Channel1.spectrum = spectrum;
-	Channel1.id = id1;
-	Channel1.realf = realf;
-	Channel1.imf = imf;
-	Channel1.wind = wind;	
-	struct Data Channel2;
-
-
-	FILE *file2; 
-	int id2 = 2;
-
-	file2 = fopen("channel2", "w");
-
-	Channel2.buf_size = bufsize;
-	Channel2.fd = file2;
-	Channel2.idp = idp2;
-	Channel2.dp = dp2;
-	Channel2.tempdp = tempdp2;
-	Channel2.autopower = autopower2;
-	Channel2.crosspower = crosspower;
-	Channel2.spectrum = spectrum2;
-	Channel2.id = id2;
-	Channel2.wind = wind2;
-	Channel2.realf = realf2;
-	Channel2.imf = imf2;
-
-	pthread_t thread1;
-	pthread_t thread2;
-	
-	pthread_create(&thread1, NULL, Process, &Channel1);
-	pthread_create(&thread2, NULL, Process, &Channel2);
-
-	pthread_join(thread1, NULL);
-	pthread_join(thread2, NULL);
-
-	
-	CrossPower(spectrum, spectrum2, crosspower, bufferSize/2);
-
+	Coherency(bufferSize / 2, crosspower, autopower, autopower2, coherency);
+	FILE *avg_coh;
+	avg_coh = fopen("avg_coh", "w");
+	WriteData(avg_coh, coherency, bufferSize/2);
 	// free buffers
 	free(dp);  
 	free(idp); 
@@ -224,11 +234,8 @@ int main(int argc, char * argv[]) {
 	// Print time elapsed since the clock_gettime(CLOCK_MONOTONIC, &start call) 	
 	printf("free my buffer\n");
 	PrintTime(start);
-	
 	//release resources
 	rp_Release();
-	
-
 	return 0;
 }	
 
@@ -294,12 +301,13 @@ void * Process(void * Data_Struct) {
 	short int dir = 1; /* direction of the fourier transform */ 
 	long m = 14; /* number of samples in the time domain 2**14 = 16384 */
 	FFT(dir, m, realf, imf); 
-	printf("fft + %d\n", id); 	
-		
+	printf("fft + %d\n", id); 		
+	
 	MakeComplexArray(realf, imf, spectrum, bufferSize/2);
 	
-	AutoPower(spectrum, autopower, bufferSize/2);
-
+	printf("here");
+	AccAutoPower(spectrum, autopower, bufferSize/2);
+		
 	FILE *fd;
 	fd = (*d).fd;
 	WriteAllData(fd, dp, wind, spectrum, autopower, bufferSize);
@@ -331,21 +339,21 @@ int MakeComplexArray(double *dp, double *idp, gsl_complex *spectrum, int bufferS
 	return 0;
 }
 
-int AutoPower(gsl_complex *spectrum, double *power, int bufferSize) {
+int AccAutoPower(gsl_complex *spectrum, double *power, int bufferSize) {
 	int i;
 	double pow;
 	for (i = 0; i < bufferSize; i++) {
 		pow = 1000000* gsl_complex_abs(*(spectrum + i));
 		pow = pow * pow;
-		*(power + i) = pow;
+		*(power + i) = *(power + i) + pow;
 	}
 	return 0;
 }
 		
-int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, gsl_complex *crosspower, int bufferSize) {
+int AccCrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, gsl_complex *crosspower, int bufferSize) {
 	int i;
 	for (i = 0; i < bufferSize; i++) {
-		*(crosspower + i) = gsl_complex_mul(*(spectrum + i), gsl_complex_conjugate(*(spectrum2 + i)));
+		*(crosspower + i) = gsl_complex_add(*(crosspower + i), gsl_complex_mul(*(spectrum + i), gsl_complex_conjugate(*(spectrum2 + i))));
 	}
 	return 0;
 }

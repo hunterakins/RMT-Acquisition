@@ -7,9 +7,18 @@ from matplotlib import pyplot as plt
 import time
 import sys
 
+
+def getData(channel):
+	channel = np.loadtxt(channel);
+	inputdata = channel[:,0]
+	window = channel[:,1]
+	realf = channel[:,2]
+	imf = channel[:,1]
+	
+
 fs = 1953000
 nyquist = fs/2
-filenames = ['input_data', 'input_data2', 'fitted_data', 'fitted_data2', 'fft_data', 'fft_data2', 'spectraldata']
+filenames = ['/Data/channel1', 'Data/channel2', 'Data/crosspower', 'Data/coherency']
 freq = np.linspace(20, nyquist, 8172)
 plt.ion()
 fig = plt.figure(figsize=(18, 20))
@@ -19,8 +28,8 @@ try:
 	while True:
 		plt.pause(2)
 		plt.clf()
-		dats = [np.loadtxt(x) for x in filenames]
-		for i in range(7):
+		channel1 = np.loadtxt
+		for i in range():
 			plt.subplot(numplots//2+1, 2, i+1)
 			plt.title(filenames[i])
 			if i == 6:

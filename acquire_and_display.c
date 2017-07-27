@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Rp api init failed!\n");
 	}
 	/**/	
-	rp_GenFreq(RP_CH_1, 500000.0);
+	rp_GenFreq(RP_CH_1, 50000.0);
 	
 	/* Generating amplitude */
 	rp_GenAmp(RP_CH_1, 0.25);
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 	uint32_t* endplace;
 	endplace = &bufferSize;
 	rp_AcqSetDecimation(RP_DEC_1); 
-	rp_AcqSetSamplingRate(RP_SMP_125M);
+	rp_AcqSetSamplingRate(RP_SMP_122_070K);
 	rp_AcqReset();
 	rp_AcqGetLatestDataV(RP_CH_1, endplace, data);
 	sleep(1);
