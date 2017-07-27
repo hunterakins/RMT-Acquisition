@@ -13,8 +13,10 @@ def getData(channel):
 	inputdata = channel[:,0]
 	window = channel[:,1]
 	realf = channel[:,2]
-	imf = channel[:,1]
-	
+	imf = channel[:,3]
+	autopower = channel[:,]
+	return inputdata, window, realf, imf, autopower
+title = ['input_data', 'windowed', 'realfft', 'imfft', 'autopower']
 
 fs = 1953000
 nyquist = fs/2
@@ -28,16 +30,15 @@ try:
 	while True:
 		plt.pause(2)
 		plt.clf()
-		channel1 = np.loadtxt
-		for i in range():
-			plt.subplot(numplots//2+1, 2, i+1)
-			plt.title(filenames[i])
-			if i == 6:
-				for j in range(5):
-					plt.subplot(numplots//2+1, 2, i + 1 + j)
-					plt.plot(freq, dats[i][20:, j])
-			else:
-				plt.plot(dats[i][:])	
+		channel1 = getData('channel1')
+		channel2 = getData('channel2')
+		for i in range(5):
+			plt.subplot(12, 2, 2*i+1)
+			plt.title(title[i])
+			plt.plot(channel1[i])
+			plt.subplot(12,2,2*i+2)
+			plt.plot(channel2[i])
+			plt.title(title[i])
 		plt.draw()
 except KeyboardInterrupt:
 	pass

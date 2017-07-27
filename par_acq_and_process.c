@@ -156,7 +156,7 @@ int main(int argc, char * argv[]) {
 	FILE *file1;
 	int id1 = 1;
 
-	file1 = fopen("channel1", "w");
+	file1 = fopen("Data/channel1", "w");
 
 	Channel1.buf_size = bufsize;
 	Channel1.fd = file1;
@@ -176,7 +176,7 @@ int main(int argc, char * argv[]) {
 	FILE *file2; 
 	int id2 = 2;
 
-	file2 = fopen("channel2", "w");
+	file2 = fopen("Data/channel2", "w");
 
 	Channel2.buf_size = bufsize;
 	Channel2.fd = file2;
