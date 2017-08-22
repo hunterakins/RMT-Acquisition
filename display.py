@@ -1,5 +1,5 @@
 ''' display program for client computer to create a "real time" plot of the two channels time series data
-fs is the sampling time
+fs is the sampling time, simply scp the script over to the client and call it
 '''
 import numpy as np
 

@@ -1,3 +1,6 @@
+# simple scipt to pass the result of avg_coherency to scp_path
+
+
 import os 
 from time import sleep
 import sys
