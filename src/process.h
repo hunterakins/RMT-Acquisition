@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <math.h>
-#include <"lin_fit.h">
-#include <"spectrum.h">
-#include <"fft.h">
+#include "lin_fit.h"
+#include "spectral.h"
+#include "fft.h"
 
 typedef struct Data {
 	size_t bufsize;
-	FILE *fd;
 	int16_t *dp;
 	int16_t *ip;
 	int16_t *domain;
@@ -15,7 +14,7 @@ typedef struct Data {
 	int16_t *imf;
 } Data;
 
-void Process(void * Data_Struct);
+void Process(struct Data * Data_Struct);
 
 
 
