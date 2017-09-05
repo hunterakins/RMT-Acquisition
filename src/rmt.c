@@ -18,7 +18,7 @@
 int main() {
 	
 	struct Data Channel1;		
-
+	
 	return 0;
 
 	

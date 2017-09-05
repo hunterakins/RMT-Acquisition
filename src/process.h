@@ -5,17 +5,14 @@
 #include <"fft.h">
 
 typedef struct Data {
-	int bufsize;
+	size_t bufsize;
 	FILE *fd;
-	double *idp;
-	double *dp;
-	float *tempdp;
-	double *ap;
-	int16_t *cp;
-	int16_t *icp;
-	int16_t *coh;
-	double *rf;
-	double *imf;
+	int16_t *dp;
+	int16_t *ip;
+	int16_t *domain;
+	int16_t *ap;
+	int16_t *rf;
+	int16_t *imf;
 } Data;
 
 void Process(void * Data_Struct);

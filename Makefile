@@ -8,14 +8,17 @@ SRCDIR := ./src
 SRCS := $(addprefix $(SRCDIR)/, lin_fit.c lin_fit_test.c)
 HDRS := $(addprefix $(SRCDIR)/, lin_fit.h)
 OBJDIR := ./obj
-OBJS := $(addprefix $(OBJDIR)/, lin_fit.o lin_fit_test.o window.o fft.o)
+OBJS := $(addprefix $(OBJDIR)/, lin_fit.o lin_fit_test.o window.o fft.o process.o)
 BINDIR := ./bin
 
 rmt : rmt.o
 	$(CC) $(CFLAGS)  $(OBJS) -o ./bin/rmt $(LDFLAGS) $(LDLIBS)
 
-rmt.o : lin_fit.o window.o fft.o window.o write.o
+rmt.o : lin_fit.o window.o fft.o write.o process.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) -c ./src/lin_fit_test.c ./obj/lin_fit.o  -o ./obj/lin_fit_test.o
+
+process.o : lin_fit.o window.o fft.o write.o  
+	$(CC) $(CFLAGS) -c ./src/process.c -o ./obj/process.o
 
 lin_fit.o : 
 	$(CC) $(CFLAGS) -c ./src/lin_fit.c -o ./obj/lin_fit.o
