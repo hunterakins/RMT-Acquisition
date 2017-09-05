@@ -1,6 +1,8 @@
 #include "lin_fit.h"
 #include "window.h"
 #include "fft.h"
+#include "rp.h"
+#include "write.h"
 
 #define BUFSIZE 100
 
@@ -10,13 +12,16 @@ int main() {
 	int16_t *dp = (int16_t *) (malloc(bufsize * sizeof(int16_t)));
 	int16_t *domain = (int16_t *) (malloc(bufsize * sizeof(int16_t)));
 	int16_t *ip = calloc(bufsize, sizeof(int16_t));
-
-	
+	FILE * fd;
+		
+	fd = fopen("hiya", "w");
 
 	for (i = 0; i < bufsize; i++) {
 		*(dp+i) = i*i;
 		printf("%d\n", *(dp + i));
 	}
+
+	WriteTimeData(fd, dp, bufsize);
 		
 	int16_t c0 =0;
 	int16_t c1 =0;
@@ -36,7 +41,7 @@ int main() {
 	}
 	
 	FFT(1, 14, dp, ip);	
-
 	
+		
 }
 	

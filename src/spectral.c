@@ -2,12 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define SQUARE(z) = ((z)*(z))
+#define SQUARE(z) ((z)*(z))
 
 // takes in spectrum with real values dp and im value idp
-int AutoPower(int16_t *dp, int16_t *idp, double *power, int bufferSize) {
+int AutoPower(int16_t *dp, int16_t *idp, int16_t *power, int bufferSize) {
 	int i;
-	int16_t pow;
 	for (i = 0; i < bufferSize; i++) {
 		*(power + i) = SQUARE(*(dp+i)) + SQUARE(*(idp+i)) ;
 	}
@@ -24,14 +23,13 @@ int CrossPower(int16_t *dp, int16_t *idp, int16_t *dp1, int16_t *idp1, int16_t *
 	return 0;
 }
 		
-int Coherency(int bufferSize, gsl_complex *crosspower, double *autopower, double *autopower2, double *coherency) {
+int Coherency(int bufferSize, int16_t *cp, int16_t *icp, int16_t * autopower, int16_t *autopower1, int16_t *coherency) {
 	int i;
 	double num;
 	double denom;
 	for (i = 0; i < bufferSize; i++) {
-		num = 1000000*gsl_complex_abs(*(crosspower + i));
-		num = 1000000000000* num * num;
-		denom = *(autopower + i) * *(autopower2 + i);
+		num = SQUARE(*(cp + i)) + SQUARE(*(icp + i)) ;
+		denom = *(autopower + i) * *(autopower1 + i);
 		if (denom == (double) 0) {
 			*(coherency + i) = 0;
 		}

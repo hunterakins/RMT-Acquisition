@@ -1,9 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
-// computes autopower of spectrum and writes it into power
-int AutoPower(complex *spectrum, double *power, int bufferSize);
-
-// computes crosspower between two input spectra and stores in the complex valued array crosspower 
-int CrossPower(gsl_complex *spectrum, gsl_complex *spectrum2, gsl_complex *crosspower, int bufferSize);
-
-// computes coherency of two input channels given the crosspower and respective autopower
-int Coherency(int bufferSize, gsl_complex *crosspower, double *autopower, double *autopower2, double *coherency);
+int AutoPower(int16_t *dp, int16_t *idp, int16_t *power, int bufferSize);
+		
+int CrossPower(int16_t *dp, int16_t *idp, int16_t *dp1, int16_t *idp1, int16_t *cp, int16_t *icp, int bufferSize);
+		
+int Coherency(int bufferSize, int16_t *cp, int16_t *icp, int16_t * autopower, int16_t *autopower1, int16_t *coherency);
