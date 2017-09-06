@@ -17,14 +17,17 @@
 
 #define RP_BUF_SIZE 16384
 
-int main() {
-	
+int main() {	
 	size_t bufsize = RP_BUF_SIZE;
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
 	
 	struct Data Channel1;		
 
+
+
 	int i;
+
+	rp_Init();
 	for (i=0;i<bufsize;i++) {
 		*(dp + i) = i;
 	}
@@ -32,6 +35,8 @@ int main() {
 	Channel1.dp = dp;
 	printf("%" PRId16 "\n", *(Channel1.dp +10));	
 	free(dp);
+
+	rp_Release();
 	return 0;
 
 	
