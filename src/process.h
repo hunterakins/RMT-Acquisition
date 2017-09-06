@@ -1,5 +1,9 @@
+#ifndef __PROCESS_H
+#define __PROCESS_H 
+
 #include <stdio.h>
 #include <math.h>
+#include "window.h"
 #include "lin_fit.h"
 #include "spectral.h"
 #include "fft.h"
@@ -17,4 +21,4 @@ typedef struct Data {
 void Process(struct Data * Data_Struct);
 
 
-
+#endif
