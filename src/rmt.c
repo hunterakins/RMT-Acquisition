@@ -21,6 +21,17 @@
 int main(int argc, char * argv[]) {	
 	size_t bufsize = RP_BUF_SIZE;
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * ip = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * domain = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * ap = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * rf = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * imf = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * dp1 = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * ip1 = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * domain1 = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * ap1 = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * rf1 = (void *) malloc(sizeof(int16_t) * bufsize);
+	int16_t * imf1 = (void *) malloc(sizeof(int16_t) * bufsize);
 	uint32_t size = bufsize;	
 
 
@@ -32,6 +43,8 @@ int main(int argc, char * argv[]) {
 
 	rp_AcqStart();
 
+	rp_AcqSetSamplingRate(RP_SMP_1_953M);
+	
 	rp_AcqGetLatestDataRaw(channel, &size, dp); 
 
 	
@@ -42,7 +55,21 @@ int main(int argc, char * argv[]) {
 	for(i=0;i<bufsize;i++) {
 		printf("%" PRId16 "\n", *(Channel1.dp +i));	
 	}
+
+	Process(&Channel1);
+	rp_AcqStop();
 	free(dp);
+	free(ip);
+	free(domain);
+	free(ap);
+	free(rf);
+	free(imf);
+	free(dp1);
+	free(ip1);
+	free(domain1);
+	free(ap1);
+	free(rf1);
+	free(imf1);
 
 	rp_Release();
 	return 0;
