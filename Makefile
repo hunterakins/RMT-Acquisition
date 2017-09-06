@@ -3,25 +3,33 @@ CFLAGS += -I/opt/redpitaya/include
 LDFLAGS = -L/opt/redpitaya/lib
 LDLIBS = -lm -lrp -lpthread 
 
+BASENAMES := lin_fit \
+	     window \
+             write \
+	     fft \
+	     spectral \
+
+vpath = ./src:./obj
 SRCDIR := ./src
 OBJDIR := ./obj
-OBJS := $(addprefix $(OBJDIR)/, lin_fit.o window.o fft.o spectral.o process.o rmt.o)
+BASE := $(addprefix $(OBJDIR)/, $(addsuffix .o, $(BASENAMES)))  
+
 BINDIR := ./bin
 
 rmt : 	rmt.o
-	$(CC) $(CFLAGS)  $(OBJS) -o ./bin/rmt $(LDFLAGS) $(LDLIBS)
+	$(CC) $(CFLAGS)  $(OBJDIR)/rmt.o -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
-rmt.o : $(OBJS) 
-	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) -c ./src/rmt.c 
+rmt.o : process.o  
+	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) -c $(SRCDIR)/rmt.c -o $(OBJDIR)/$@
 
-process.o : lin_fit.o window.o fft.o write.o spectral.o 
-	$(CC) $(CFLAGS) -c ./src/process.c -o ./obj/process.o
+process.o : $(BASE) 
+	$(CC) $(CFLAGS) -c $(SRCDIR)/process.c -o $(OBJDIR)/$@
 
-$(OBJDIR)/%.o : $(SRCDIR)/%.c
+
+$(OBJDIR)/%.o : $(SRCDIR)/%.c | $(OBJDIR)
 	$(CC) -c $(CFLAGS) $< -o $@ 
 	
 
-
 clean: 
-	$(RM) $(OBJS)
 	$(RM) *.o
+	$(RM) $(wildcard $(addprefix $(OBJDIR)/, *.o))
