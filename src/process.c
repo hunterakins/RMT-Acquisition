@@ -11,8 +11,7 @@
 
 // takes in the data struct, which contains the information for the channel and the allocated memory
 
-void Process(struct Data * Data_Struct) {
-
+void * Process(void * Data_Struct) {
 	// don't totally remember but think this has to do with subtleties of pthreads
 	struct Data * d;
 
@@ -48,7 +47,7 @@ void Process(struct Data * Data_Struct) {
 
 	// window dp with the vals in domain
 	Hadamard(bufsize, dp, domain); 
-		
+	
 	// copy
 	memcpy(rf, dp, bufsize);
 	memcpy(imf, ip, bufsize);
@@ -62,6 +61,5 @@ void Process(struct Data * Data_Struct) {
 	
 	AutoPower(rf, imf, ap, bufsize/2);
 
-	
-	return;
+	return NULL;	
 }

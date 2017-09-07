@@ -18,7 +18,7 @@ typedef struct Data {
 	int16_t *imf;
 } Data;
 
-void Process(struct Data * Data_Struct);
+void * Process(void * Data_Struct);
 
 
 #endif

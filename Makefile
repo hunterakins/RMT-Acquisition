@@ -17,7 +17,7 @@ BASE := $(addprefix $(OBJDIR)/, $(addsuffix .o, $(BASENAMES)))
 BINDIR := ./bin
 
 rmt : 	rmt.o
-	$(CC) $(CFLAGS)  $(OBJDIR)/rmt.o -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
+	$(CC) $(CFLAGS)  $(BASE) $(OBJDIR)/process.o $(OBJDIR)/rmt.o -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
 rmt.o : process.o  
 	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) -c $(SRCDIR)/rmt.c -o $(OBJDIR)/$@
