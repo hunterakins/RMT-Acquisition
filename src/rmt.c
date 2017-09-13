@@ -21,8 +21,7 @@
 
 int main(int argc, char * argv[]) {	
 
-	float sampling_rate = atof(*(argv+1));
-	size_t bufsize = RP_BUF_SIZE;
+	bufsize = RP_BUF_SIZE;
 
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
 	int16_t * ip = calloc(bufsize, sizeof(int16_t));
@@ -37,7 +36,7 @@ int main(int argc, char * argv[]) {
 	int16_t * rf1 = (void *) malloc(sizeof(int16_t) * bufsize);
 	int16_t * imf1 = (void *) malloc(sizeof(int16_t) * bufsize);
 	uint32_t size = bufsize;	
-	float buffer_fill_time = bufsize / sampling_rate;
+	float buffer_fill_time = bufsize / sampling_rates[0];
 
 	//time for the buffer to fill up in microseconds
 	buffer_fill_time = buffer_fill_time * 1000000; 
@@ -65,7 +64,9 @@ int main(int argc, char * argv[]) {
 	usleep(buffer_fill_time);
 	// wait for trigger
 	int j = 0;
-	for (j=0;j<5;j++) {
+	int i;
+	for (j=0;j<10; j++) {
+		i += 1;
 		while(1){
 			rp_AcqGetTriggerState(&state);
 			if(state == RP_TRIG_STATE_TRIGGERED){
@@ -81,23 +82,25 @@ int main(int argc, char * argv[]) {
 		printf("%d\n", value);
 			
 		usleep(800);
-
 		rp_AcqGetOldestDataRaw(channel, &size, dp1);
-			
-		int i = 0;	
-		for (i=0;i<bufsize;i++) {
-			printf("%" PRId16 "\n", *(dp1+i));
-		}
-		rp_AcqReset();
-		rp_AcqSetSamplingRate(RP_SMP_122_070K);
 		
+			
+		rp_AcqReset();
+		
+		// increase samping rate
+		rp_AcqSetSamplingRate(j%4 +1);
+		
+		buffer_fill_time = bufsize / (sampling_rates[j%4]);
+
+		printf("buffer_fill_time: %f\n", buffer_fill_time);
+		rp_AcqStart();
+		usleep(buffer_fill_time*1000000);
 		rp_AcqSetTriggerSrc(RP_TRIG_SRC_EXT_PE);
+
 
 		rp_AcqSetTriggerDelay(100);
 
 
-		rp_AcqStart();
-		usleep(buffer_fill_time);
 		rp_AcqGetTriggerState(&state);
 		printf("Trigger statae: %d\n", state);
 	}

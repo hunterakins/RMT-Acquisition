@@ -19,7 +19,7 @@ BINDIR := ./bin
 rmt : 	rmt.o
 	$(CC) $(CFLAGS)  $(BASE) $(OBJDIR)/process.o $(OBJDIR)/rmt.o -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
-rmt.o : process.o  
+rmt.o : process.o 
 	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) -c $(SRCDIR)/rmt.c -o $(OBJDIR)/$@
 
 process.o : $(BASE) 
