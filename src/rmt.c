@@ -22,6 +22,7 @@
 int main(int argc, char * argv[]) {	
 
 	bufsize = RP_BUF_SIZE;
+	char name_holder[15] = "";
 
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
 	int16_t * ip = calloc(bufsize, sizeof(int16_t));
@@ -84,6 +85,11 @@ int main(int argc, char * argv[]) {
 		usleep(800);
 		rp_AcqGetOldestDataRaw(channel, &size, dp1);
 		
+
+		
+		strcat(name_holder, filename);
+		strcat(name_holder, (char) j);
+		printf("%s", name_holder);
 			
 		rp_AcqReset();
 		
