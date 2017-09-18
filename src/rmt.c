@@ -16,13 +16,14 @@
 #include "inttypes.h"
 #include <time.h>
 #include <string.h>
+#include "cascaded.h"
+#include <libconfig.h>
 
 #define RP_BUF_SIZE 16384
 
 int main(int argc, char * argv[]) {	
 
-	bufsize = RP_BUF_SIZE;
-	char name_holder[15] = "";
+	printf("%s\n", OUTPUT.FILEBASE);
 
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
 	int16_t * ip = calloc(bufsize, sizeof(int16_t));
@@ -36,80 +37,10 @@ int main(int argc, char * argv[]) {
 	int16_t * ap1 = (void *) malloc(sizeof(int16_t) * bufsize);
 	int16_t * rf1 = (void *) malloc(sizeof(int16_t) * bufsize);
 	int16_t * imf1 = (void *) malloc(sizeof(int16_t) * bufsize);
-	uint32_t size = bufsize;	
-	float buffer_fill_time = bufsize / sampling_rates[0];
 
-	//time for the buffer to fill up in microseconds
-	buffer_fill_time = buffer_fill_time * 1000000; 
-	
-	rp_channel_t channel = RP_CH_1;
-	rp_channel_t channel1 = RP_CH_2;
-	// just to avoid Werror
-	channel1 += channel;
-	
-	// set up trigger stuff 
-	rp_Init();
+	int acquire_time = 20;
+	cascade(&acquire_time);
 
-	rp_AcqReset();
-	rp_AcqSetSamplingRate(RP_SMP_122_070K);
-	
-	rp_AcqSetTriggerSrc(RP_TRIG_SRC_EXT_PE);
-
-	rp_AcqSetTriggerDelay(100);
-
-        rp_acq_trig_state_t state = RP_TRIG_STATE_TRIGGERED;
-
-	rp_AcqStart();
-	
-	// once I've began I need to wait buffer_fill_time for the samples to be written into adc buffer
-	usleep(buffer_fill_time);
-	// wait for trigger
-	int j = 0;
-	int i;
-	for (j=0;j<10; j++) {
-		i += 1;
-		while(1){
-			rp_AcqGetTriggerState(&state);
-			if(state == RP_TRIG_STATE_TRIGGERED){
-				break;
-			}
-		}
-		printf("%d\n", j);
-		
-		// pre trigger valid points?
-		uint32_t value;
-		rp_AcqGetPreTriggerCounter(&value);
-		printf("pretrigg counter: ");
-		printf("%d\n", value);
-			
-		usleep(800);
-		rp_AcqGetOldestDataRaw(channel, &size, dp1);
-		
-
-		
-		strcat(name_holder, filename);
-		strcat(name_holder, (char) j);
-		printf("%s", name_holder);
-			
-		rp_AcqReset();
-		
-		// increase samping rate
-		rp_AcqSetSamplingRate(j%4 +1);
-		
-		buffer_fill_time = bufsize / (sampling_rates[j%4]);
-
-		printf("buffer_fill_time: %f\n", buffer_fill_time);
-		rp_AcqStart();
-		usleep(buffer_fill_time*1000000);
-		rp_AcqSetTriggerSrc(RP_TRIG_SRC_EXT_PE);
-
-
-		rp_AcqSetTriggerDelay(100);
-
-
-		rp_AcqGetTriggerState(&state);
-		printf("Trigger statae: %d\n", state);
-	}
 	/* write	
 	
 	fd = fopen(asctime(timeinfo), "w");

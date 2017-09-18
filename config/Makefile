@@ -1,18 +1,13 @@
-CFLAGS  = -g -std=gnu99 -Wall -Werror 
+CFLAGS  = -g -O2 -std=gnu99 -Wall -Werror -Wshadow -Wextra -Wdeclaration-after-statement -Wno-unused-parameter
 CFLAGS += -I/opt/redpitaya/include
 LDFLAGS = -L/opt/redpitaya/lib
-LDLIBS = -lm -lrp -lpthread 
+LDFLAGS += -L/usr/local/lib
+LDLIBS = -lm -lrp -lpthread -lconfig
 
-vpath = ./src:./obj
-SRCDIR := ./src
-OBJDIR := ./obj
+example : example1.c
+	$(CC) $(CFLAGS) example1.c  $(LDFLAGS) $(LDLIBS)
 
-
-conf_test : config.o 
-	$(CC) $(CFLAGS) config.o -o conf_test $(LDFLAGS) $(LDLIBS)
-
-config.o : 
-	$(CC) $(CFLAGS) config.c -o config.o $(LDFLAGS) $(LDLIBS)
+example1.c :
 
 
 clean: 
