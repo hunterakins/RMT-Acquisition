@@ -22,12 +22,14 @@
 #define RP_BUF_SIZE 16384
 
 int cascade(void) {	
+	bufsize = 16384;
+	float sampling_rates[6] = {125000000, 15625000, 1953000, 122070, 15628, 1907};
 	config_t cfg;
 	config_setting_t *setting;
 	
 	config_init(&cfg);
 	/* Read the file. If there is an error, report it and exit. */
-	if(! config_read_file(&cfg, "../config/config.cfg")) {
+	if(! config_read_file(&cfg, "config.cfg")) {
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 			config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
@@ -49,20 +51,18 @@ int cascade(void) {
 	}
 
 	
-	config_destroy(&cfg);
-	
+	config_destroy(&cfg);	
 
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
 	
 	int16_t * dp1 = (void *) malloc(sizeof(int16_t) * bufsize);
-	
 	// place holder so that I can update the filenames for each channel
 	//char name_holder[15] = "";
 	*(dp + 0) = 0;	
 	// initialize sampling rate to 1 
-	rp_AcqSetSamplingRate(4);
+	printf("1\n");	
 
-	float buffer_fill_time = 1000000*BUFSIZE / sampling_rates[0];
+	float buffer_fill_time = 1000000*bufsize / sampling_rates[first_band];
 
 	rp_channel_t channel = RP_CH_1;
 	rp_channel_t channel1 = RP_CH_2;
@@ -71,7 +71,10 @@ int cascade(void) {
 	channel1 += channel;
 	
 	// set up trigger stuff 
-	rp_Init();
+	if (rp_Init() != RP_OK) {
+		fprintf(stderr, "RP initialization failed");
+		return 1;
+	}
 
 	rp_AcqReset();
 	// 1 corresponds to 15.625MHz
@@ -92,6 +95,7 @@ int cascade(void) {
 	// i keeps track of which loop
 	int i;
 	int j;
+	printf("3\n");
 	for (j=0;j<final_index; j++) {
 		while(1){
 			rp_AcqGetTriggerState(&state);
@@ -100,7 +104,7 @@ int cascade(void) {
 			}
 		}
 		usleep(800);
-		rp_AcqGetOldestDataRaw(channel, &BUFSIZE, dp1);
+		rp_AcqGetOldestDataRaw(channel, &bufsize, dp1);
 			
 		int k = 0;
 		for (k =0; k < 100; k ++) {
@@ -111,7 +115,7 @@ int cascade(void) {
 		rp_AcqSetSamplingRate(first_band + j%num_bands);
 		
 		// update buffer_fill_time
-		buffer_fill_time = 1000000 * BUFSIZE / (sampling_rates[first_band + j%num_bands]);
+		buffer_fill_time = 1000000 * bufsize / (sampling_rates[first_band + j%num_bands]);
 		
 		// debug message
 		printf("buffer_fill_time: %f\n", buffer_fill_time);
@@ -133,6 +137,8 @@ int cascade(void) {
 		//. increment loop counter
 		i += 1;
 	}
+	free(dp);
+	free(dp1);
 
 	rp_AcqStop();	
 	return RP_OK;

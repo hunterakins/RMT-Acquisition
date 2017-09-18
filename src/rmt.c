@@ -22,9 +22,29 @@
 #define RP_BUF_SIZE 16384
 
 int main(int argc, char * argv[]) {	
+	config_t cfg;
+	config_setting_t *setting;
+	
+	config_init(&cfg);
+	/* Read the file. If there is an error, report it and exit. */
+	if(! config_read_file(&cfg, "config.cfg")) {
+		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
+			config_error_line(&cfg), config_error_text(&cfg));
+		config_destroy(&cfg);
+		return(EXIT_FAILURE);
+	}
 
-	printf("%s\n", OUTPUT.FILEBASE);
-
+	setting = config_lookup(&cfg, "main");
+	bool cas = config_setting_get_bool_elem(setting, 0);	
+	printf("%d\n", cas);
+	
+	if (cas == 1) {	
+		cascade();
+	}
+	
+	config_destroy(&cfg);
+	return(EXIT_SUCCESS);
+	
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
 	int16_t * ip = calloc(bufsize, sizeof(int16_t));
 	int16_t * domain = (void *) malloc(sizeof(int16_t) * bufsize);
@@ -38,20 +58,6 @@ int main(int argc, char * argv[]) {
 	int16_t * rf1 = (void *) malloc(sizeof(int16_t) * bufsize);
 	int16_t * imf1 = (void *) malloc(sizeof(int16_t) * bufsize);
 
-	int acquire_time = 20;
-	cascade(&acquire_time);
-
-	/* write	
-	
-	fd = fopen(asctime(timeinfo), "w");
-
-	for(i=0;i<bufsize;i++) {
-		fprintf(fd, "%" PRId16 "\t%" PRId16 "\n" , *(dp+i), *(dp1+i));
-	}	
-		
-
-
-	*/
 
 	struct Data Channel1;		
 	Channel1.bufsize = bufsize;	
