@@ -20,8 +20,15 @@
 #include <libconfig.h>
 
 #define RP_BUF_SIZE 16384
+#define CONF_SIZE 30
 
 int main(int argc, char * argv[]) {	
+	if (argc == 1) {
+		fprintf(stderr, "no config file supplied: go into config folder and choose a config file");
+	}
+	else {
+		char conf = argv[1];
+	}
 	config_t cfg;
 	config_setting_t *setting;
 	
@@ -33,13 +40,11 @@ int main(int argc, char * argv[]) {
 		config_destroy(&cfg);
 		return(EXIT_FAILURE);
 	}
-
 	setting = config_lookup(&cfg, "main");
 	bool cas = config_setting_get_bool_elem(setting, 0);	
-	printf("%d\n", cas);
 	
 	if (cas == 1) {	
-		cascade();
+		cascade(conf);
 	}
 	
 	config_destroy(&cfg);

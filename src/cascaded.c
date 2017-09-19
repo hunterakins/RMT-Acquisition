@@ -21,21 +21,33 @@
 
 #define RP_BUF_SIZE 16384
 
-int cascade(void) {	
+int cascade(char conf[]) {	
 	bufsize = 16384;
 	float sampling_rates[6] = {125000000, 15625000, 1953000, 122070, 15628, 1907};
+	FILE *fd;
+	char conf_base[] = "/home/redpitaya/RedPitaya/RMT-Acquisition/config/\0";
+	if (strcat(conf_base, conf) == NULL ) {
+		fprintf(stderr, "string concat/ failed on config file\n");
+	}
+		
+	fd = fopen(conf_base, "r");
+	if (fd == NULL) {
+		fprintf(stderr, "can't open file");
+		return EXIT_FAILURE;
+	}
 	config_t cfg;
 	config_setting_t *setting;
 	
 	config_init(&cfg);
 	/* Read the file. If there is an error, report it and exit. */
-	if(! config_read_file(&cfg, "config.cfg")) {
+	if(! config_read(&cfg, fd)) {
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 			config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
 		return(EXIT_FAILURE);
 	}
 
+	printf("0\n");
 
 	setting = config_lookup(&cfg, "cascade");
 
@@ -50,7 +62,7 @@ int cascade(void) {
 		return(EXIT_FAILURE);
 	}
 
-	
+	printf("1\n");	
 	config_destroy(&cfg);	
 
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
@@ -60,7 +72,7 @@ int cascade(void) {
 	//char name_holder[15] = "";
 	*(dp + 0) = 0;	
 	// initialize sampling rate to 1 
-	printf("1\n");	
+	printf("2\n");	
 
 	float buffer_fill_time = 1000000*bufsize / sampling_rates[first_band];
 
@@ -139,7 +151,7 @@ int cascade(void) {
 	}
 	free(dp);
 	free(dp1);
-
+	fclose(fd);
 	rp_AcqStop();	
 	return RP_OK;
 
