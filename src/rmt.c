@@ -22,19 +22,31 @@
 #define RP_BUF_SIZE 16384
 #define CONF_SIZE 30
 
+
+char conf_base[] = "/home/redpitaya/RedPitaya/RMT-Acquisition/config/";
+
 int main(int argc, char * argv[]) {	
 	if (argc == 1) {
 		fprintf(stderr, "no config file supplied: go into config folder and choose a config file");
+		return 1;
 	}
-	else {
-		char conf = argv[1];
+		
+	char conf[CONF_SIZE];
+	if (strlen(argv[1]) > CONF_SIZE) {
+		fprintf(stderr, "config filename limited to %d chars\n", (int) CONF_SIZE);
+	}
+	if (strcpy(conf, argv[1]) == NULL) {
+		fprintf(stderr, "string copy failed");
+	}
+	if (strcat(conf_base, conf) == NULL ) {
+		fprintf(stderr, "string concat/ failed on config file\n");
 	}
 	config_t cfg;
 	config_setting_t *setting;
 	
 	config_init(&cfg);
 	/* Read the file. If there is an error, report it and exit. */
-	if(! config_read_file(&cfg, "config.cfg")) {
+	if(! config_read_file(&cfg, conf_base)) {
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 			config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
@@ -42,9 +54,8 @@ int main(int argc, char * argv[]) {
 	}
 	setting = config_lookup(&cfg, "main");
 	bool cas = config_setting_get_bool_elem(setting, 0);	
-	
 	if (cas == 1) {	
-		cascade(conf);
+		cascade(conf_base);
 	}
 	
 	config_destroy(&cfg);

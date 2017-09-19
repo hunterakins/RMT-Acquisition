@@ -6,4 +6,6 @@
 
 int cascade(char s[]);
 size_t bufsize;
+void reverse(char s[]);
+void itoa(int n, char s[]);
 #endif

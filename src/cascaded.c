@@ -22,58 +22,60 @@
 #define RP_BUF_SIZE 16384
 
 int cascade(char conf[]) {	
+	
 	bufsize = 16384;
 	float sampling_rates[6] = {125000000, 15625000, 1953000, 122070, 15628, 1907};
-	FILE *fd;
-	char conf_base[] = "/home/redpitaya/RedPitaya/RMT-Acquisition/config/\0";
-	if (strcat(conf_base, conf) == NULL ) {
-		fprintf(stderr, "string concat/ failed on config file\n");
-	}
-		
-	fd = fopen(conf_base, "r");
-	if (fd == NULL) {
-		fprintf(stderr, "can't open file");
-		return EXIT_FAILURE;
-	}
+
 	config_t cfg;
-	config_setting_t *setting;
 	
 	config_init(&cfg);
 	/* Read the file. If there is an error, report it and exit. */
-	if(! config_read(&cfg, fd)) {
+	if(! config_read_file(&cfg, conf)) {
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
 			config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
 		return(EXIT_FAILURE);
 	}
 
-	printf("0\n");
 
-	setting = config_lookup(&cfg, "cascade");
 
-	int acquire_time = config_setting_get_int_elem(setting, 0);
-	// how many	
-	int num_bands = config_setting_get_int_elem(setting, 1);		
-	// which ones
-	int first_band = config_setting_get_int_elem(setting, 2);
+	// look up cascade specific settings
+	int acquire_time;
+	config_lookup_int(&cfg, "cascade.acquire_time", &acquire_time);	
+	int num_bands;
+ 	config_lookup_int(&cfg, "cascade.num_bands", &num_bands);		
+	int first_band;
+ 	config_lookup_int(&cfg, "cascade.first_band", &first_band);		
 
 	if ((num_bands + first_band) > 6) {
 		fprintf(stderr, "Number of bands plus first bands must be less than or equal to 6\n");
 		return(EXIT_FAILURE);
 	}
 
-	printf("1\n");	
-	config_destroy(&cfg);	
+
+	// look up display settings
+	int terminal;
+	config_lookup_bool(&cfg, "display.terminal", &terminal);
+	int write;
+	config_lookup_bool(&cfg, "display.write", &write);
+	const char * file_folder;
+	if (write) {
+		// where to write?
+		config_lookup_string(&cfg, "write.file_folder", &file_folder);
+	}
+	int plot; 
+	config_lookup_bool(&cfg, "display.plot", &plot);	
+
 
 	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
+	// avoid Werror complaint
+	*(dp + 0) = 0;	
 	
 	int16_t * dp1 = (void *) malloc(sizeof(int16_t) * bufsize);
+	
 	// place holder so that I can update the filenames for each channel
-	//char name_holder[15] = "";
-	*(dp + 0) = 0;	
-	// initialize sampling rate to 1 
-	printf("2\n");	
-
+	char name_holder[30];
+	 
 	float buffer_fill_time = 1000000*bufsize / sampling_rates[first_band];
 
 	rp_channel_t channel = RP_CH_1;
@@ -105,9 +107,8 @@ int cascade(char conf[]) {
 	// determines depth of for loop 
 	int final_index = acquire_time;
 	// i keeps track of which loop
-	int i;
-	int j;
-	printf("3\n");
+	int i = 0;
+	int j = 0;
 	for (j=0;j<final_index; j++) {
 		while(1){
 			rp_AcqGetTriggerState(&state);
@@ -119,9 +120,29 @@ int cascade(char conf[]) {
 		rp_AcqGetOldestDataRaw(channel, &bufsize, dp1);
 			
 		int k = 0;
-		for (k =0; k < 100; k ++) {
-			printf("%d\n", *(dp1 + k));
+		if (terminal) {
+			for (k =0; k < 100; k ++) {
+				printf("%d\n", *(dp1 + k));
+			}
 		}
+		else if (write) {
+			// file name is loop number
+			char file_name[10];
+		 	itoa(i, file_name);
+	
+			if (strcpy(name_holder, file_folder) == NULL) {
+				fprintf(stderr, "issue with strcpy");
+			}
+			if (strcat(name_holder, file_name) == NULL) {
+				fprintf(stderr, "issue with file naming"); 
+			}
+			FILE * fd = fopen(name_holder, "w");
+			WriteTimeData(fd, dp1, bufsize);
+			fclose(fd);
+		}
+		else if (plot) {
+			;
+		}	
 		rp_AcqReset();
 		// update sampling rate
 		rp_AcqSetSamplingRate(first_band + j%num_bands);
@@ -144,15 +165,44 @@ int cascade(char conf[]) {
 		rp_AcqSetTriggerDelay(0);
 
 		rp_AcqGetTriggerState(&state);
-		//debug
-		printf("Trigger statae: %d\n", state);
-		//. increment loop counter
+		// increment loop counter
 		i += 1;
 	}
+
+	config_destroy(&cfg);	
 	free(dp);
 	free(dp1);
-	fclose(fd);
 	rp_AcqStop();	
 	return RP_OK;
 
 }	
+
+ /* reverse:  reverse string s in place */
+ void reverse(char s[])
+ {
+     int i, j;
+     char c;
+ 
+     for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
+         c = s[i];
+         s[i] = s[j];
+         s[j] = c;
+     }
+ }
+
+ /* itoa:  convert n to characters in s */
+ void itoa(int n, char s[])
+ {
+     int i, sign;
+ 
+     if ((sign = n) < 0)  /* record sign */
+         n = -n;          /* make n positive */
+     i = 0;
+     do {       /* generate digits in reverse order */
+         s[i++] = n % 10 + '0';   /* get next digit */
+     } while ((n /= 10) > 0);     /* delete it */
+     if (sign < 0)
+         s[i++] = '-';
+     s[i] = '\0';
+     reverse(s);
+ }
