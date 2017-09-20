@@ -18,7 +18,7 @@ BASE := $(addprefix $(OBJDIR)/, $(addsuffix .o, $(BASENAMES)))
 BINDIR := ./bin
 
 rmt : 	rmt.o
-	$(CC) $(CFLAGS) $(BASE) $(OBJDIR)/process.o $(OBJDIR)/cascaded.o $(OBJDIR)/rmt.o -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
+	$(CC) $(CFLAGS) $(BASE) $(OBJDIR)/process.o $(OBJDIR)/gnuplot_i.o $(OBJDIR)/cascaded.o $(OBJDIR)/rmt.o -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
 rmt.o : process.o cascaded.o 
 	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) -c $(SRCDIR)/rmt.c -o $(OBJDIR)/$@ $(LDFLAGS) $(LDLIBS)

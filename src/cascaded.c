@@ -18,6 +18,7 @@
 #include <string.h>
 #include "cascaded.h"
 #include <libconfig.h>
+#include "gnuplot_i.h"
 
 #define RP_BUF_SIZE 16384
 
@@ -42,6 +43,7 @@ int cascade(char conf[]) {
 	// look up cascade specific settings
 	int acquire_time;
 	config_lookup_int(&cfg, "cascade.acquire_time", &acquire_time);	
+	printf("acquire time = : %d\n", acquire_time);
 	int num_bands;
  	config_lookup_int(&cfg, "cascade.num_bands", &num_bands);		
 	int first_band;
@@ -63,15 +65,17 @@ int cascade(char conf[]) {
 		// where to write?
 		config_lookup_string(&cfg, "write.file_folder", &file_folder);
 	}
-	int plot; 
+	int plot;
 	config_lookup_bool(&cfg, "display.plot", &plot);	
-
-
-	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
+	int i = 0;
+	gnuplot_ctrl * h1;
+	h1 = gnuplot_init();
+	//int16_t * dom = (void *) calloc(sizeof(int16_t), bufsize);
+	double * dp = (void *) malloc(sizeof(double) * bufsize);
 	// avoid Werror complaint
 	*(dp + 0) = 0;	
 	
-	int16_t * dp1 = (void *) malloc(sizeof(int16_t) * bufsize);
+	double * dp1 = (void *) malloc(sizeof(double) * bufsize);
 	
 	// place holder so that I can update the filenames for each channel
 	char name_holder[30];
@@ -107,7 +111,7 @@ int cascade(char conf[]) {
 	// determines depth of for loop 
 	int final_index = acquire_time;
 	// i keeps track of which loop
-	int i = 0;
+	i = 0;
 	int j = 0;
 	for (j=0;j<final_index; j++) {
 		while(1){
@@ -117,12 +121,12 @@ int cascade(char conf[]) {
 			}
 		}
 		usleep(800);
-		rp_AcqGetOldestDataRaw(channel, &bufsize, dp1);
+		rp_AcqGetOldestDataRaw(channel, &bufsize, (int16_t *) dp1);
 			
 		int k = 0;
 		if (terminal) {
 			for (k =0; k < 100; k ++) {
-				printf("%d\n", *(dp1 + k));
+				printf("%f\n", *(dp1 + k));
 			}
 		}
 		else if (write) {
@@ -141,7 +145,10 @@ int cascade(char conf[]) {
 			fclose(fd);
 		}
 		else if (plot) {
-			;
+			gnuplot_resetplot(h1);
+			printf("ready to plot \n");
+			gnuplot_setstyle(h1, "points");
+			gnuplot_plot_x(h1, (double * ) dp1, bufsize, "nice");			
 		}	
 		rp_AcqReset();
 		// update sampling rate
@@ -165,6 +172,7 @@ int cascade(char conf[]) {
 		rp_AcqSetTriggerDelay(0);
 
 		rp_AcqGetTriggerState(&state);
+		printf("Trigger state: %d\n",state);
 		// increment loop counter
 		i += 1;
 	}
@@ -172,6 +180,7 @@ int cascade(char conf[]) {
 	config_destroy(&cfg);	
 	free(dp);
 	free(dp1);
+	gnuplot_close(h1);
 	rp_AcqStop();	
 	return RP_OK;
 
