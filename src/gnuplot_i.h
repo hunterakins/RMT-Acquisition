@@ -216,7 +216,7 @@ void gnuplot_resetplot(gnuplot_ctrl * h);
   @endcode
  */
 /*--------------------------------------------------------------------------*/
-void gnuplot_plot_x(gnuplot_ctrl * handle, double * d, int n, char * title);
+void gnuplot_plot_x(gnuplot_ctrl * handle, float * d, int n, char * title);
 
 /*-------------------------------------------------------------------------*/
 /**

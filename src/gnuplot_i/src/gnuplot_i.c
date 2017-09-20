@@ -333,7 +333,7 @@ void gnuplot_resetplot(gnuplot_ctrl * h)
 
 void gnuplot_plot_x(
     gnuplot_ctrl    *   handle,
-    double          *   d,
+    float          *   d,
     int                 n,
     char            *   title
 )
@@ -355,7 +355,7 @@ void gnuplot_plot_x(
 
     /* Write data to this file  */
     for (i=0 ; i<n ; i++) {
-      fprintf(tmpfd, "%.18e\n", d[i]);
+      fprintf(tmpfd, "%.18d\n", d[i]);
     }
     fclose(tmpfd) ;
 

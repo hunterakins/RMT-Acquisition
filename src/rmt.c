@@ -61,18 +61,18 @@ int main(int argc, char * argv[]) {
 	config_destroy(&cfg);
 	return(EXIT_SUCCESS);
 	
-	int16_t * dp = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * ip = calloc(bufsize, sizeof(int16_t));
-	int16_t * domain = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * ap = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * rf = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * imf = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * dp1 = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * ip1 = calloc(bufsize, sizeof(int16_t));
-	int16_t * domain1 = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * ap1 = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * rf1 = (void *) malloc(sizeof(int16_t) * bufsize);
-	int16_t * imf1 = (void *) malloc(sizeof(int16_t) * bufsize);
+	float * dp = (void *) malloc(sizeof(float) * bufsize);
+	float * ip = calloc(bufsize, sizeof(float));
+	float * domain = (void *) malloc(sizeof(float) * bufsize);
+	float * ap = (void *) malloc(sizeof(float) * bufsize);
+	float * rf = (void *) malloc(sizeof(float) * bufsize);
+	float * imf = (void *) malloc(sizeof(float) * bufsize);
+	float * dp1 = (void *) malloc(sizeof(float) * bufsize);
+	float * ip1 = calloc(bufsize, sizeof(float));
+	float * domain1 = (void *) malloc(sizeof(float) * bufsize);
+	float * ap1 = (void *) malloc(sizeof(float) * bufsize);
+	float * rf1 = (void *) malloc(sizeof(float) * bufsize);
+	float * imf1 = (void *) malloc(sizeof(float) * bufsize);
 
 
 	struct Data Channel1;		

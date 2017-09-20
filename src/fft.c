@@ -11,7 +11,7 @@ This computes an in-place complex-to-complex FFT
 
 
 
-void FFT(short int dir,long m,int16_t *x, int16_t *y) {
+void FFT(short int dir,long m,float *x, float *y) {
    long n,i,i1,j,k,i2,l,l1,l2;
    float c1,c2,tx,ty,t1,t2,u1,u2,z;
    /* Calculate the number of points */

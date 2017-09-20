@@ -29,6 +29,7 @@
                                 Includes
  ---------------------------------------------------------------------------*/
 #include <stdio.h>
+#include <stdint.h>
 
 /** Maximal number of simultaneous temporary files */
 #define GP_MAX_TMP_FILES    64
@@ -216,7 +217,7 @@ void gnuplot_resetplot(gnuplot_ctrl * h);
   @endcode
  */
 /*--------------------------------------------------------------------------*/
-void gnuplot_plot_x(gnuplot_ctrl * handle, double * d, int n, char * title);
+void gnuplot_plot_x(gnuplot_ctrl * handle, float * d, int n, char * title);
 
 /*-------------------------------------------------------------------------*/
 /**

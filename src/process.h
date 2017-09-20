@@ -10,12 +10,12 @@
 
 typedef struct Data {
 	size_t bufsize;
-	int16_t *dp;
-	int16_t *ip;
-	int16_t *domain;
-	int16_t *ap;
-	int16_t *rf;
-	int16_t *imf;
+	float *dp;
+	float *ip;
+	float *domain;
+	float *ap;
+	float *rf;
+	float *imf;
 } Data;
 
 void * Process(void * Data_Struct);

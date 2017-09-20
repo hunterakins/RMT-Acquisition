@@ -5,7 +5,7 @@
 
 
 
-int WriteTimeData(FILE *fd, double *dp, int numvals) {
+int WriteTimeData(FILE *fd, float *dp, int numvals) {
 	int i;
 	for (i = 0; i < numvals; i++) {
 		fprintf(fd, "%f\n", *(dp+i));

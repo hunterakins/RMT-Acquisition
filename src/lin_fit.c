@@ -14,7 +14,7 @@
  8/31/2017
  Note:
  * Modified this one a bit: 
-   1. Changed double type to int16_t
+   1. Changed double type to float
    2. Got rid of goodness of fit stuff
  
  * Goal was to remove gsl dependency and make more suited to my rmt application
@@ -54,16 +54,16 @@
 */
 
 /* make a domain for the linear fit, simply the numbers 0, 1, ..., bufsize */
-void MakeDomain(int bufsize, int16_t *ip) {
+void MakeDomain(int bufsize, float *ip) {
 	int i = 0;
 	for (i = 0; i < bufsize; i++) {
-		*(ip + i) = (int16_t) i;
+		*(ip + i) = (float) i;
 	}
 }
 
 
-int gsl_fit_linear (const int16_t *x, const int16_t *y, const size_t n, int16_t *c0, int16_t *c1) {
-	int16_t m_x = 0, m_y = 0, m_dx2 = 0, m_dxdy = 0;
+int gsl_fit_linear (const float *x, const float *y, const size_t n, float *c0, float *c1) {
+	float m_x = 0, m_y = 0, m_dx2 = 0, m_dxdy = 0;
 
 	size_t i;
 
@@ -75,8 +75,8 @@ int gsl_fit_linear (const int16_t *x, const int16_t *y, const size_t n, int16_t 
 
 	for (i = 0; i < n; i++)
 	{
-		const int16_t dx = x[i] - m_x;
-		const int16_t dy = y[i] - m_y;
+		const float dx = x[i] - m_x;
+		const float dy = y[i] - m_y;
 
 		m_dx2 += (dx * dx - m_dx2) / (i + 1.0);
 		m_dxdy += (dx * dy - m_dxdy) / (i + 1.0);
@@ -85,8 +85,8 @@ int gsl_fit_linear (const int16_t *x, const int16_t *y, const size_t n, int16_t 
 	/* In terms of y = a + b x */
 
 	
-	int16_t b = m_dxdy / m_dx2;
-	int16_t a = m_y - m_x * b;
+	float b = m_dxdy / m_dx2;
+	float a = m_y - m_x * b;
 
 	*c0 = a;
 	*c1 = b;
@@ -95,8 +95,8 @@ int gsl_fit_linear (const int16_t *x, const int16_t *y, const size_t n, int16_t 
 
 }
 
-int LinearFilter(int16_t * domain, int16_t * data, size_t n, int16_t c0, int16_t c1) {
-	int i;
+int LinearFilter(float * domain, float * data, size_t n, float c0, float c1) {
+	size_t i;
 	MakeDomain(n, domain);
 	gsl_fit_linear(domain, data, n, &c0, &c1);
 	for (i = 0; i < n; i ++) {

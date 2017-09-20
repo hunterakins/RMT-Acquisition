@@ -4,7 +4,7 @@
 
 
 // take hadamard (componentwise) product of two arrays, dp and hp, which will do a hamming window on dp
-void Hadamard(int bufsize, int16_t *dp, int16_t *hp) {
+void Hadamard(int bufsize, float *dp, float *hp) {
 	int i = 0;
 	for (i = 0; i < bufsize; i++) {
 		*(dp + i) = *(dp + i) * *(hp + i);
@@ -12,10 +12,10 @@ void Hadamard(int bufsize, int16_t *dp, int16_t *hp) {
 }
 
 /* generate vals for the hamming window */
-void GenWindow(int bufsize, int16_t *hp) {
+void GenWindow(int bufsize, float *hp) {
 	int i = 0;
 	for (i = 0; i < bufsize; i++) {
-		*(hp+i) = (int16_t) .54 - .46*cos(2*M_PI*i/ bufsize);
+		*(hp+i) = (float) .54 - .46*cos(2*M_PI*i/ bufsize);
 	}
 }
 

@@ -16,17 +16,15 @@
 #include "inttypes.h"
 #include <time.h>
 #include <string.h>
-#include "cascaded.h"
+#include "coherency.h"
 #include <libconfig.h>
 #include "gnuplot_i.h"
 
 #define RP_BUF_SIZE 16384
 
-int cascade(char conf[]) {	
+int coherency(char conf[]) {	
 	
 	bufsize = 16384;
-	int_bufsize = 16384;
-	uint_bufsize = 16384;
 	float sampling_rates[6] = {125000000, 15625000, 1953000, 122070, 15628, 1907};
 
 	config_t cfg;
@@ -58,8 +56,6 @@ int cascade(char conf[]) {
 
 
 	// look up display settings
-	int freq_domain;
-	config_lookup_bool(&cfg, "display.freq_domain", &freq_domain);
 	int terminal;
 	config_lookup_bool(&cfg, "display.terminal", &terminal);
 	int write;
@@ -74,10 +70,12 @@ int cascade(char conf[]) {
 	int i = 0;
 	gnuplot_ctrl * h1;
 	h1 = gnuplot_init();
-	//float * dom = (void *) calloc(sizeof(float), bufsize);
-	float * dp = (void *) calloc(sizeof(float), bufsize);
+	//int16_t * dom = (void *) calloc(sizeof(int16_t), bufsize);
+	double * dp = (void *) malloc(sizeof(double) * bufsize);
+	// avoid Werror complaint
+	*(dp + 0) = 0;	
 	
-	float * dp1 = (void *) malloc(sizeof(float) * bufsize);
+	double * dp1 = (void *) malloc(sizeof(double) * bufsize);
 	
 	// place holder so that I can update the filenames for each channel
 	char name_holder[30];
@@ -98,7 +96,7 @@ int cascade(char conf[]) {
 
 	rp_AcqReset();
 	// 1 corresponds to 15.625MHz
-	rp_AcqSetSamplingRate(first_band);
+	rp_AcqSetSamplingRate(1);
 	
 	rp_AcqSetTriggerSrc(RP_TRIG_SRC_EXT_PE);
 
@@ -122,16 +120,12 @@ int cascade(char conf[]) {
 				break;
 			}
 		}
-		rp_AcqGetOldestDataV(channel, &uint_bufsize,  dp1);
-		usleep(1800);
+		usleep(800);
+		rp_AcqGetOldestDataV(channel, &bufsize, (float *) dp1);
 			
-		
-		if (freq_domain) {
-			FFT(-1, 14, dp1, dp);
-		} 	
-		int k;
+		int k = 0;
 		if (terminal) {
-			for (k =0; k < int_bufsize; k ++) {
+			for (k =0; k < 100; k ++) {
 				printf("%f\n", *(dp1 + k));
 			}
 		}
@@ -154,7 +148,8 @@ int cascade(char conf[]) {
 			gnuplot_resetplot(h1);
 			printf("ready to plot \n");
 			gnuplot_setstyle(h1, "points");
-			gnuplot_plot_x(h1,  dp1, bufsize, "nice");			
+			gnuplot_plot_x(h1, (double * ) dp1, bufsize, "nice");			
+			gnuplot_cmd(h1, "set xlabel Time(s)");
 		}	
 		rp_AcqReset();
 		// update sampling rate

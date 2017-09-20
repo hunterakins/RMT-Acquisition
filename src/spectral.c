@@ -5,7 +5,7 @@
 #define SQUARE(z) ((z)*(z))
 
 // takes in spectrum with real values dp and im value idp
-int AutoPower(int16_t *dp, int16_t *idp, int16_t *power, int bufferSize) {
+int AutoPower(float *dp, float *idp, float *power, int bufferSize) {
 	int i;
 	for (i = 0; i < bufferSize; i++) {
 		*(power + i) = SQUARE(*(dp+i)) + SQUARE(*(idp+i)) ;
@@ -14,7 +14,7 @@ int AutoPower(int16_t *dp, int16_t *idp, int16_t *power, int bufferSize) {
 }
 		
 // idp
-int CrossPower(int16_t *dp, int16_t *idp, int16_t *dp1, int16_t *idp1, int16_t *cp, int16_t *icp, int bufferSize) {
+int CrossPower(float *dp, float *idp, float *dp1, float *idp1, float *cp, float *icp, int bufferSize) {
 	int i;
 	for (i = 0; i < bufferSize; i++) {
 		*(cp + i) = (*(dp+i)) * (*(dp1)) + (*(idp+i)) * (*(idp1 +i)); 
@@ -23,7 +23,7 @@ int CrossPower(int16_t *dp, int16_t *idp, int16_t *dp1, int16_t *idp1, int16_t *
 	return 0;
 }
 		
-int Coherency(int bufferSize, int16_t *cp, int16_t *icp, int16_t * autopower, int16_t *autopower1, int16_t *coherency) {
+int Coherency(int bufferSize, float *cp, float *icp, float * autopower, float *autopower1, float *coherency) {
 	int i;
 	double num;
 	double denom;

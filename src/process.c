@@ -19,12 +19,12 @@ void * Process(void * Data_Struct) {
 
 	size_t bufsize = (*d).bufsize;
 	// declare array pointers	
-	int16_t *dp;
-	int16_t *ip;
-	int16_t *domain;
-	int16_t *ap;
-	int16_t *rf;
-	int16_t *imf;
+	float *dp;
+	float *ip;
+	float *domain;
+	float *ap;
+	float *rf;
+	float *imf;
 	
 	// get array pointers from data struct
 	dp = (*d).dp;
@@ -36,8 +36,8 @@ void * Process(void * Data_Struct) {
 
 	MakeDomain(bufsize, domain);
 
-	int16_t c0 = 0;
-	int16_t c1 = 0;
+	float c0 = 0;
+	float c1 = 0;
 
 	// do first order correction
 	LinearFilter(domain, dp, bufsize, c0, c1);
