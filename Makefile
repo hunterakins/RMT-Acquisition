@@ -10,18 +10,22 @@ BASENAMES := lin_fit \
 	     fft \
 	     spectral \
 
+
 vpath = ./src:./obj
 SRCDIR := ./src
 OBJDIR := ./obj
+# programs needed for process.o
 BASE := $(addprefix $(OBJDIR)/, $(addsuffix .o, $(BASENAMES)))  
-
 BINDIR := ./bin
 
 rmt : 	rmt.o
-	$(CC) $(CFLAGS) $(BASE) $(OBJDIR)/process.o $(OBJDIR)/gnuplot_i.o $(OBJDIR)/cascaded.o $(OBJDIR)/rmt.o -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
+	$(CC) $(CFLAGS) $(BASE) $(OBJDIR)/process.o $(OBJDIR)/gnuplot_i.o $(OBJDIR)/cascaded.o $(OBJDIR)/two_channel_cascaded.o $(OBJDIR)/rmt.o -o $(BINDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
-rmt.o : process.o cascaded.o 
+rmt.o : process.o cascaded.o two_channel_cascaded.o  
 	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) -c $(SRCDIR)/rmt.c -o $(OBJDIR)/$@ $(LDFLAGS) $(LDLIBS)
+
+two_channel_cascaded.o: cascaded.o
+	$(CC) $(CFLAGS) $(OBJDIR)/cascaded.o -c $(SRCDIR)/two_channel_cascaded.c -o $(OBJDIR)/$@ $(LDFLAGS) $(LDLIBS)
 
 cascaded.o: 
 	$(CC) $(CFLAGS) -c $(SRCDIR)/cascaded.c -o $(OBJDIR)/$@ $(LDFLAGS) $(LDLIBS)

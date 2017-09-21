@@ -22,9 +22,10 @@
 
 #define RP_BUF_SIZE 16384
 
-int cascade(char conf[]) {	
+int two_channel_cascade(char conf[]) {	
 	
 	// ________________________intialize input buffers, some general variables____//
+
 	bufsize = 16384;
 	int_bufsize = 16384;
 	uint_bufsize = 16384;
@@ -33,9 +34,11 @@ int cascade(char conf[]) {
 	float * dp1 = (void *) calloc(sizeof(float), bufsize);
 
 	// ________________________initialize conf file________________________________//
+
 	config_t cfg;
 	
 	config_init(&cfg);
+
 	/* Read the file. If there is an error, report it and exit. */
 	if(! config_read_file(&cfg, conf)) {
 		fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
@@ -47,6 +50,7 @@ int cascade(char conf[]) {
 
 
 	// ________________________look up cascade specific settings___________________//
+
 	int acquire_time; 
  	config_lookup_int(&cfg, "cascade.acquire_time", &acquire_time);		
 	printf("acquire time = : %d\n", acquire_time);
@@ -62,6 +66,7 @@ int cascade(char conf[]) {
 
 
 	// ________________________look up display settings_____________________________//
+
 	int freq_domain;
 	config_lookup_bool(&cfg, "display.freq_domain", &freq_domain);
 	int terminal;
@@ -77,19 +82,21 @@ int cascade(char conf[]) {
 	char name_holder[50];
 	int plot;
 	config_lookup_bool(&cfg, "display.plot", &plot);	
-	// __________________________gnuplot initializations;
+
+	// __________________________gnuplot initializations_____________________________//
+
 	gnuplot_ctrl * h1;
 	h1 = gnuplot_init();
 	gnuplot_resetplot(h1);
 	
 	
 	char multiplot_base[40] = "set multiplot layout ";
-	char multiplot_end[10] = " rowsfirst";
+	char multiplot_end[12] = " rowsfirst";
 	// num of cols: 2 if odd, 3 if even
 	char x[2];
-	itoa((num_bands % 2) + 2, x);
+	itoa(2*((num_bands % 2) + 2), x);
 	char y[2];
-	itoa(num_bands / ((num_bands %2) + 2), y);
+	itoa(2*num_bands / ((num_bands %2) + 2), y);
 	char multiplot_init[10];
 	char comma[2] = ",";
 	strcpy(multiplot_init, y);
@@ -102,6 +109,7 @@ int cascade(char conf[]) {
 	if (num_bands > 1) {
 		gnuplot_cmd(h1, multiplot_base);
 	}
+
 	// ________________________look up main settings ________________________________//
 
 
@@ -129,6 +137,10 @@ int cascade(char conf[]) {
 	// loop counter
 	int i = 0;
 	int j = 0;
+
+
+	// ______________________acquisition loop__________________//
+
 	for (j=0;j<final_index; j++) {
 		//________________wait for the trigger____________//
 		while(1){
@@ -137,32 +149,30 @@ int cascade(char conf[]) {
 				break;
 			}
 		}
+		usleep(1000);
 		// acquire the data
-		usleep(100);
 		rp_AcqGetOldestDataV(channel, &uint_bufsize,  dp);
+		rp_AcqGetOldestDataV(channel1, &uint_bufsize, dp1);	
 		int k;
 		if (terminal) {
-			printf("Channel 1: ");
+			printf("Channel 1 \t Channel 2\n");
+			printf("_________________________");
 			for (k =0; k < int_bufsize; k ++) {
-				printf("%f\n", *(dp + k));
+				printf("%f\t%f\n", *(dp + k), *(dp1 + k));
 			}
 		}
 		else if (write) {
 			// file name is loop number
 			char file_name[10];
-			char ch1[21] = "channel1_";
 		 	itoa(i, file_name);
-			if (strcat(ch1, file_name) == NULL) {
-				fprintf(stderr, "issue with strcat");
-			}
 			if (strcpy(name_holder, file_folder) == NULL) {
 				fprintf(stderr, "issue with strcpy");
 			}
-			if (strcat(name_holder, ch1) == NULL) {
+			if (strcat(name_holder, file_name) == NULL) {
 				fprintf(stderr, "issue with file naming"); 
 			}
 			FILE * fd = fopen(name_holder, "w");
-			WriteTimeData(fd, dp, bufsize);
+			WriteTwoChannels(fd, dp, dp1, bufsize);
 			fclose(fd);
 			printf("%s\n", name_holder);
 			fflush(stdout);
@@ -180,11 +190,15 @@ int cascade(char conf[]) {
 			strcat(tmp, plot_num);
 			// write to the temp files
 			FILE *fd = fopen(tmp, "w");
-			WriteTimeData(fd, dp, bufsize);
+			rewind(fd);
+			WriteTwoChannels(fd, dp, dp1, bufsize);
 			fclose(fd);
 			gnuplot_setstyle(h1, "points");
-			gnuplot_cmd(h1, "plot '%s'", tmp);
+			gnuplot_cmd(h1, "plot '%s' using 1", tmp);
+			gnuplot_cmd(h1, "plot '%s' using 2", tmp);
 		}	
+
+		// ___________________________prepare for trigger and next round of acquisition________________________//
 		rp_AcqStop();
 		rp_AcqReset();
 		// update sampling rate
@@ -214,6 +228,7 @@ int cascade(char conf[]) {
 		i += 1;
 	}
 
+
 	// _________________________________clean up _____________________________//
 	config_destroy(&cfg);	
 	free(dp);
@@ -225,32 +240,3 @@ int cascade(char conf[]) {
 
 }	
 
- /* reverse:  reverse string s in place */
- void reverse(char s[])
- {
-     int i, j;
-     char c;
- 
-     for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
-         c = s[i];
-         s[i] = s[j];
-         s[j] = c;
-     }
- }
-
- /* itoa:  convert n to characters in s */
- void itoa(int n, char s[])
- {
-     int i, sign;
- 
-     if ((sign = n) < 0)  /* record sign */
-         n = -n;          /* make n positive */
-     i = 0;
-     do {       /* generate digits in reverse order */
-         s[i++] = n % 10 + '0';   /* get next digit */
-     } while ((n /= 10) > 0);     /* delete it */
-     if (sign < 0)
-         s[i++] = '-';
-     s[i] = '\0';
-     reverse(s);
- }

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 int cascade(char s[]);
+int two_channel_cascade(char s[]);
 size_t bufsize;
 int int_bufsize;
 uint32_t uint_bufsize;

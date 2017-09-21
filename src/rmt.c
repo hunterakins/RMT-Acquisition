@@ -54,8 +54,16 @@ int main(int argc, char * argv[]) {
 	}
 	setting = config_lookup(&cfg, "main");
 	bool cas = config_setting_get_bool_elem(setting, 0);	
+	int two_channel;
+	config_lookup_bool(&cfg, "main.two_channel", &two_channel);
+
 	if (cas == 1) {	
-		cascade(conf_base);
+		if (two_channel) {
+			two_channel_cascade(conf_base);
+		}
+		else {
+			cascade(conf_base);
+		}
 	}
 	
 	config_destroy(&cfg);
