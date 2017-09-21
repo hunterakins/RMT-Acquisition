@@ -8,6 +8,7 @@ To build, simply call make.
 
 A simple tutorial is provided in the examples folder.
 
+This software uses the gnuplot_i library written by N.Devillard, as well as libconfig from Mark Lindner.
 
 
  

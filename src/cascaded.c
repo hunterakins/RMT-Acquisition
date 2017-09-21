@@ -77,9 +77,31 @@ int cascade(char conf[]) {
 	char name_holder[50];
 	int plot;
 	config_lookup_bool(&cfg, "display.plot", &plot);	
+	// __________________________gnuplot initializations;
 	gnuplot_ctrl * h1;
 	h1 = gnuplot_init();
-
+	gnuplot_resetplot(h1);
+	
+	
+	char multiplot_base[40] = "set multiplot layout ";
+	char multiplot_end[10] = " rowsfirst";
+	// num of cols: 2 if odd, 3 if even
+	char x[2];
+	itoa((num_bands % 2) + 2, x);
+	char y[2];
+	itoa(num_bands / ((num_bands %2) + 2), y);
+	char multiplot_init[10];
+	char comma[2] = ",";
+	strcpy(multiplot_init, y);
+	strcat(multiplot_init, comma);
+	strcat(multiplot_init, x);
+	strcat(multiplot_base, multiplot_init);
+	strcat(multiplot_base, multiplot_end);
+	printf("Multiplot command: %s\n", multiplot_base);
+	gnuplot_cmd(h1, "set term x11 persist");
+	if (num_bands > 1) {
+		gnuplot_cmd(h1, multiplot_base);
+	}
 	// ________________________look up main settings ________________________________//
 	int two_channel;
 	config_lookup_bool(&cfg, "main.two_channel", &two_channel);
@@ -173,11 +195,24 @@ int cascade(char conf[]) {
 			fclose(fd);
 		}
 		else if (plot) {
-			gnuplot_resetplot(h1);
-			printf("ready to plot \n");
+			// reset multiplot to clear old graphs 
+			if ((j % num_bands) == 0) {
+				gnuplot_cmd(h1, "unset multiplot");
+				gnuplot_cmd(h1, multiplot_base);
+			}
+			// naming scheme for temporary files to hold data
+			char tmp[10] = "/tmp/";
+			char plot_num[2];
+			itoa(j%num_bands, plot_num);
+			strcat(tmp, plot_num);
+			// write to the temp files
+			FILE *fd = fopen(tmp, "w");
+			WriteTimeData(fd, dp, bufsize);
+			fclose(fd);
 			gnuplot_setstyle(h1, "points");
-			gnuplot_plot_x(h1, dp1, bufsize, "nice");			
+			gnuplot_cmd(h1, "plot '%s'", tmp);
 		}	
+		rp_AcqStop();
 		rp_AcqReset();
 		// update sampling rate
 		rp_AcqSetSamplingRate(first_band + j%num_bands);
@@ -206,9 +241,11 @@ int cascade(char conf[]) {
 		i += 1;
 	}
 
+	// _________________________________clean up _____________________________//
 	config_destroy(&cfg);	
 	free(dp);
 	free(dp1);
+	gnuplot_cmd(h1, "unset multiplot");
 	gnuplot_close(h1);
 	rp_AcqStop();	
 	return RP_OK;
