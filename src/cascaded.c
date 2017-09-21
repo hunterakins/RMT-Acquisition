@@ -24,11 +24,15 @@
 
 int cascade(char conf[]) {	
 	
+	// ________________________intialize input buffers, some general variables____//
 	bufsize = 16384;
 	int_bufsize = 16384;
 	uint_bufsize = 16384;
 	float sampling_rates[6] = {125000000, 15625000, 1953000, 122070, 15628, 1907};
+	float * dp = (void *) calloc(sizeof(float), bufsize);
+	float * dp1 = (void *) calloc(sizeof(float), bufsize);
 
+	// ________________________initialize conf file________________________________//
 	config_t cfg;
 	
 	config_init(&cfg);
@@ -42,9 +46,9 @@ int cascade(char conf[]) {
 
 
 
-	// look up cascade specific settings
-	int acquire_time;
-	config_lookup_int(&cfg, "cascade.acquire_time", &acquire_time);	
+	// ________________________look up cascade specific settings___________________//
+	int acquire_time; 
+ 	config_lookup_int(&cfg, "cascade.acquire_time", &acquire_time);		
 	printf("acquire time = : %d\n", acquire_time);
 	int num_bands;
  	config_lookup_int(&cfg, "cascade.num_bands", &num_bands);		
@@ -57,7 +61,7 @@ int cascade(char conf[]) {
 	}
 
 
-	// look up display settings
+	// ________________________look up display settings_____________________________//
 	int freq_domain;
 	config_lookup_bool(&cfg, "display.freq_domain", &freq_domain);
 	int terminal;
@@ -68,93 +72,111 @@ int cascade(char conf[]) {
 	if (write) {
 		// where to write?
 		config_lookup_string(&cfg, "write.file_folder", &file_folder);
+		// place holder so that I can update the filenames for each channel
 	}
+	char name_holder[50];
 	int plot;
 	config_lookup_bool(&cfg, "display.plot", &plot);	
-	int i = 0;
 	gnuplot_ctrl * h1;
 	h1 = gnuplot_init();
-	//float * dom = (void *) calloc(sizeof(float), bufsize);
-	float * dp = (void *) calloc(sizeof(float), bufsize);
-	
-	float * dp1 = (void *) malloc(sizeof(float) * bufsize);
-	
-	// place holder so that I can update the filenames for each channel
-	char name_holder[30];
-	 
+
+	// ________________________look up main settings ________________________________//
+	int two_channel;
+	config_lookup_bool(&cfg, "main.two_channel", &two_channel);
+
+	//_________________________prepare for the first acquisition ____________________//
+
 	float buffer_fill_time = 1000000*bufsize / sampling_rates[first_band];
 
 	rp_channel_t channel = RP_CH_1;
 	rp_channel_t channel1 = RP_CH_2;
-
-	// just to avoid Werror when doing single channel acq
 	channel1 += channel;
-	
-	// set up trigger stuff 
 	if (rp_Init() != RP_OK) {
 		fprintf(stderr, "RP initialization failed");
 		return 1;
 	}
-
 	rp_AcqReset();
-	// 1 corresponds to 15.625MHz
-	rp_AcqSetSamplingRate(first_band);
-	
+	rp_AcqSetSamplingRate(first_band);	
 	rp_AcqSetTriggerSrc(RP_TRIG_SRC_EXT_PE);
-
 	rp_AcqSetTriggerDelay(0);
-
         rp_acq_trig_state_t state = RP_TRIG_STATE_TRIGGERED;
-
 	rp_AcqStart();
-	
-	// once I've began I need to wait buffer_fill_time for the samples to be written into adc buffer
+	// let buffer fill
 	usleep(buffer_fill_time);
 	// determines depth of for loop 
 	int final_index = acquire_time;
-	// i keeps track of which loop
-	i = 0;
+	// loop counter
+	int i = 0;
 	int j = 0;
 	for (j=0;j<final_index; j++) {
+		//________________wait for the trigger____________//
 		while(1){
 			rp_AcqGetTriggerState(&state);
 			if(state == RP_TRIG_STATE_TRIGGERED){
 				break;
 			}
 		}
-		rp_AcqGetOldestDataV(channel, &uint_bufsize,  dp1);
-		usleep(1800);
-			
-		
-		if (freq_domain) {
-			FFT(-1, 14, dp1, dp);
-		} 	
+		// acquire the data
+		usleep(100);
+		rp_AcqGetOldestDataV(channel, &uint_bufsize,  dp);
+		if (two_channel) {
+			rp_AcqGetOldestDataV(channel1, &uint_bufsize, dp1);
+		}	
 		int k;
 		if (terminal) {
+			printf("Channel 1: ");
 			for (k =0; k < int_bufsize; k ++) {
-				printf("%f\n", *(dp1 + k));
+				printf("%f\n", *(dp + k));
+			}
+			if (two_channel) {
+				printf("Channel 2: ");
+				for (k =0; k < int_bufsize; k ++) {
+					printf("%f\n", *(dp1 + k));
+				}
 			}
 		}
 		else if (write) {
 			// file name is loop number
 			char file_name[10];
+			char ch1[21] = "channel1_";
+			char ch2[21] = "channel2_";
 		 	itoa(i, file_name);
-	
+			if (strcat(ch1, file_name) == NULL) {
+				fprintf(stderr, "issue with strcat");
+			}
 			if (strcpy(name_holder, file_folder) == NULL) {
 				fprintf(stderr, "issue with strcpy");
 			}
-			if (strcat(name_holder, file_name) == NULL) {
+			if (strcat(name_holder, ch1) == NULL) {
 				fprintf(stderr, "issue with file naming"); 
 			}
 			FILE * fd = fopen(name_holder, "w");
-			WriteTimeData(fd, dp1, bufsize);
+			WriteTimeData(fd, dp, bufsize);
+			fclose(fd);
+			printf("%s\n", name_holder);
+			fflush(stdout);
+			if (two_channel) {
+				if (strcat(ch2, file_name) == NULL) {
+					fprintf(stderr, "issue with strcat");
+				}
+				if (strcpy(name_holder, file_folder) == NULL) {
+					fprintf(stderr, "issue with strcpy");
+				}
+				if (strcat(name_holder, ch2) == NULL) {
+					fprintf(stderr, "issue with file naming"); 
+				}
+				printf("%s\n", name_holder);
+				fflush(stdout);
+				fd = fopen(name_holder, "w");
+				WriteTimeData(fd, dp1, bufsize);
+			}
 			fclose(fd);
 		}
 		else if (plot) {
 			gnuplot_resetplot(h1);
 			printf("ready to plot \n");
 			gnuplot_setstyle(h1, "points");
-			gnuplot_plot_x(h1,  dp1, bufsize, "nice");			
+			gnuplot_plot_x(h1, dp1, bufsize, "nice");			
 		}	
 		rp_AcqReset();
 		// update sampling rate
@@ -163,6 +185,7 @@ int cascade(char conf[]) {
 		// update buffer_fill_time
 		buffer_fill_time = 1000000 * bufsize / (sampling_rates[first_band + j%num_bands]);
 		
+		printf("sampling rate: %f\n", sampling_rates[first_band + j%num_bands]);
 		// debug message
 		printf("buffer_fill_time: %f\n", buffer_fill_time);
 		

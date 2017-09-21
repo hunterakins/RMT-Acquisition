@@ -355,7 +355,7 @@ void gnuplot_plot_x(
 
     /* Write data to this file  */
     for (i=0 ; i<n ; i++) {
-      fprintf(tmpfd, "%.18d\n", d[i]);
+      fprintf(tmpfd, "%.18f\n", d[i]);
     }
     fclose(tmpfd) ;
 
@@ -484,7 +484,7 @@ void gnuplot_plot_once(
       gnuplot_set_ylabel(handle, "Y");
   }
   if (y==NULL) {
-      gnuplot_plot_x(handle, x, n, title);
+      gnuplot_plot_x(handle,(float *) x, n, title);
   } else {
       gnuplot_plot_xy(handle, x, y, n, title);
   }
