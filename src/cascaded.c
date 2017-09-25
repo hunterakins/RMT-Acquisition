@@ -74,15 +74,10 @@ int cascade(char conf[]) {
 		config_lookup_string(&cfg, "write.file_folder", &file_folder);
 		// place holder so that I can update the filenames for each channel
 	}
-	char name_holder[50];
+	char name_holder[150];
 	int plot;
 	config_lookup_bool(&cfg, "display.plot", &plot);	
 	// __________________________gnuplot initializations;
-	gnuplot_ctrl * h1;
-	h1 = gnuplot_init();
-	gnuplot_resetplot(h1);
-	
-	
 	char multiplot_base[40] = "set multiplot layout ";
 	char multiplot_end[10] = " rowsfirst";
 	// num of cols: 2 if odd, 3 if even
@@ -98,9 +93,10 @@ int cascade(char conf[]) {
 	strcat(multiplot_base, multiplot_init);
 	strcat(multiplot_base, multiplot_end);
 	printf("Multiplot command: %s\n", multiplot_base);
-	gnuplot_cmd(h1, "set term x11 persist");
+	FILE *gnuplot = popen("gnuplot", "w");
+	fprintf(gnuplot, "set term x11\n");
 	if (num_bands > 1) {
-		gnuplot_cmd(h1, multiplot_base);
+		fprintf(gnuplot, "%s\n", multiplot_base);
 	}
 	// ________________________look up main settings ________________________________//
 
@@ -149,18 +145,21 @@ int cascade(char conf[]) {
 		}
 		else if (write) {
 			// file name is loop number
-			char file_name[10];
-			char ch1[21] = "channel1_";
-		 	itoa(i, file_name);
-			if (strcat(ch1, file_name) == NULL) {
-				fprintf(stderr, "issue with strcat");
-			}
+			time_t curr_time;
+			curr_time = time(NULL);
+			struct tm * local_time;
+			local_time = localtime(&curr_time);
+			char ch1[40]; 
+			strftime(ch1, 40, "%m%d%k%M%S", local_time);
+			printf("%s\n", ch1);
 			if (strcpy(name_holder, file_folder) == NULL) {
 				fprintf(stderr, "issue with strcpy");
 			}
 			if (strcat(name_holder, ch1) == NULL) {
 				fprintf(stderr, "issue with file naming"); 
 			}
+			printf("%s\n", name_holder);
+			fflush(stdout);
 			FILE * fd = fopen(name_holder, "w");
 			WriteTimeData(fd, dp, bufsize);
 			fclose(fd);
@@ -168,22 +167,16 @@ int cascade(char conf[]) {
 			fflush(stdout);
 		}
 		else if (plot) {
+			fprintf(gnuplot, "plot '-'\n");
+			for (i = 0; i <int_bufsize; i++)
+			    fprintf(gnuplot, "%f\n", dp[i]);
+			fprintf(gnuplot, "e\n");
+			fflush(gnuplot);
 			// reset multiplot to clear old graphs 
-			if ((j % num_bands) == 0) {
-				gnuplot_cmd(h1, "unset multiplot");
-				gnuplot_cmd(h1, multiplot_base);
+			if ((num_bands > 1) & ((j % num_bands) == 0)) {
+				fprintf(gnuplot, "unset multiplot\n");
+				fprintf(gnuplot, "%s\n", multiplot_base);
 			}
-			// naming scheme for temporary files to hold data
-			char tmp[10] = "/tmp/";
-			char plot_num[2];
-			itoa(j%num_bands, plot_num);
-			strcat(tmp, plot_num);
-			// write to the temp files
-			FILE *fd = fopen(tmp, "w");
-			WriteTimeData(fd, dp, bufsize);
-			fclose(fd);
-			gnuplot_setstyle(h1, "points");
-			gnuplot_cmd(h1, "plot '%s'", tmp);
 		}	
 		rp_AcqStop();
 		rp_AcqReset();
@@ -191,7 +184,7 @@ int cascade(char conf[]) {
 		rp_AcqSetSamplingRate(first_band + j%num_bands);
 		
 		// update buffer_fill_time
-		buffer_fill_time = 1000000 * bufsize / (sampling_rates[first_band + j%num_bands]);
+		buffer_fill_time = (float) 1000000 * bufsize / (sampling_rates[first_band + j%num_bands]);
 		
 		printf("sampling rate: %f\n", sampling_rates[first_band + j%num_bands]);
 		// debug message
@@ -216,10 +209,11 @@ int cascade(char conf[]) {
 
 	// _________________________________clean up _____________________________//
 	config_destroy(&cfg);	
+	fclose(gnuplot);
 	free(dp);
 	free(dp1);
-	gnuplot_cmd(h1, "unset multiplot");
-	gnuplot_close(h1);
+	//gnuplot_cmd(h1, "unset multiplot");
+	//gnuplot_close(h1);
 	rp_AcqStop();	
 	return RP_OK;
 

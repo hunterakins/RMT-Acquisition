@@ -32,6 +32,8 @@ int two_channel_cascade(char conf[]) {
 	float sampling_rates[6] = {125000000, 15625000, 1953000, 122070, 15628, 1907};
 	float * dp = (void *) calloc(sizeof(float), bufsize);
 	float * dp1 = (void *) calloc(sizeof(float), bufsize);
+	float * idp = (void *) calloc(sizeof(float), bufsize);
+	float * idp1 = (void *) calloc(sizeof(float), bufsize);
 
 	// ________________________initialize conf file________________________________//
 
@@ -79,24 +81,19 @@ int two_channel_cascade(char conf[]) {
 		config_lookup_string(&cfg, "write.file_folder", &file_folder);
 		// place holder so that I can update the filenames for each channel
 	}
-	char name_holder[50];
+	char name_holder[150];
 	int plot;
 	config_lookup_bool(&cfg, "display.plot", &plot);	
 
 	// __________________________gnuplot initializations_____________________________//
 
-	gnuplot_ctrl * h1;
-	h1 = gnuplot_init();
-	gnuplot_resetplot(h1);
-	
-	
 	char multiplot_base[40] = "set multiplot layout ";
 	char multiplot_end[12] = " rowsfirst";
 	// num of cols: 2 if odd, 3 if even
 	char x[2];
 	itoa(2*((num_bands % 2) + 2), x);
 	char y[2];
-	itoa(2*num_bands / ((num_bands %2) + 2), y);
+	itoa(num_bands / ((num_bands %2) + 2), y);
 	char multiplot_init[10];
 	char comma[2] = ",";
 	strcpy(multiplot_init, y);
@@ -105,11 +102,11 @@ int two_channel_cascade(char conf[]) {
 	strcat(multiplot_base, multiplot_init);
 	strcat(multiplot_base, multiplot_end);
 	printf("Multiplot command: %s\n", multiplot_base);
-	gnuplot_cmd(h1, "set term x11 persist");
+	FILE *gnuplot = popen("gnuplot", "w");
+	fprintf(gnuplot, "set term x11\n");
 	if (num_bands > 1) {
-		gnuplot_cmd(h1, multiplot_base);
+		fprintf(gnuplot, "%s\n", multiplot_base);
 	}
-
 	// ________________________look up main settings ________________________________//
 
 
@@ -141,30 +138,48 @@ int two_channel_cascade(char conf[]) {
 
 	// ______________________acquisition loop__________________//
 
+	uint32_t trigger_pos;
 	for (j=0;j<final_index; j++) {
+		trigger_pos = 0;
 		//________________wait for the trigger____________//
 		while(1){
 			rp_AcqGetTriggerState(&state);
 			if(state == RP_TRIG_STATE_TRIGGERED){
+				rp_AcqStop();
 				break;
 			}
 		}
-		usleep(1000);
+		// it appears i need to sleep here to allow the circular buffer to arrange itself ?
+		usleep(buffer_fill_time);
+		rp_AcqGetWritePointerAtTrig(&trigger_pos);
+		//uint32_t  req_buf_size;
+		printf("trigger_pos - bufsize: %d \n", bufsize - trigger_pos);
 		// acquire the data
 		rp_AcqGetOldestDataV(channel, &uint_bufsize,  dp);
-		rp_AcqGetOldestDataV(channel1, &uint_bufsize, dp1);	
+		rp_AcqGetOldestDataV(channel1, &uint_bufsize,  dp1);
+		// start filling the ADC buffer
+		rp_AcqStart();
 		int k;
+		if (freq_domain) {
+			FFT(1, 14, dp, idp);
+			FFT(1, 14, dp1, idp1);
+		}
 		if (terminal) {
 			printf("Channel 1 \t Channel 2\n");
-			printf("_________________________");
+			printf("_________________________\n");
 			for (k =0; k < int_bufsize; k ++) {
 				printf("%f\t%f\n", *(dp + k), *(dp1 + k));
 			}
 		}
 		else if (write) {
 			// file name is loop number
-			char file_name[10];
-		 	itoa(i, file_name);
+			char file_name[30];
+			
+			time_t curr_time;
+			curr_time = time(NULL);
+			struct tm * local_time;
+			local_time = localtime(&curr_time);
+			strftime(file_name, 40, "%m%d%k%M%S", local_time);
 			if (strcpy(name_holder, file_folder) == NULL) {
 				fprintf(stderr, "issue with strcpy");
 			}
@@ -178,45 +193,37 @@ int two_channel_cascade(char conf[]) {
 			fflush(stdout);
 		}
 		else if (plot) {
+			fprintf(gnuplot, "plot '-'\n");
+			for (i = 0; i < int_bufsize; i++)
+			    fprintf(gnuplot, "%f \n", dp[i]);
+			fprintf(gnuplot, "e\n");
+			fflush(gnuplot);
+			fprintf(gnuplot, "plot '-'\n");
+			for (i = 0; i < int_bufsize; i++)
+			    fprintf(gnuplot, "%f \n", dp1[i]);
+			fprintf(gnuplot, "e\n");
+			fflush(gnuplot);
 			// reset multiplot to clear old graphs 
-			if ((j % num_bands) == 0) {
-				gnuplot_cmd(h1, "unset multiplot");
-				gnuplot_cmd(h1, multiplot_base);
+			if ((num_bands > 1) & ((j % num_bands) == 0)) {
+				fprintf(gnuplot, "unset multiplot\n");
+				fprintf(gnuplot, "%s\n", multiplot_base);
 			}
-			// naming scheme for temporary files to hold data
-			char tmp[10] = "/tmp/";
-			char plot_num[2];
-			itoa(j%num_bands, plot_num);
-			strcat(tmp, plot_num);
-			// write to the temp files
-			FILE *fd = fopen(tmp, "w");
-			rewind(fd);
-			WriteTwoChannels(fd, dp, dp1, bufsize);
-			fclose(fd);
-			gnuplot_setstyle(h1, "points");
-			gnuplot_cmd(h1, "plot '%s' using 1", tmp);
-			gnuplot_cmd(h1, "plot '%s' using 2", tmp);
 		}	
 
 		// ___________________________prepare for trigger and next round of acquisition________________________//
-		rp_AcqStop();
 		rp_AcqReset();
 		// update sampling rate
 		rp_AcqSetSamplingRate(first_band + j%num_bands);
 		
 		// update buffer_fill_time
-		buffer_fill_time = 1000000 * bufsize / (sampling_rates[first_band + j%num_bands]);
+		buffer_fill_time = (float) 1000000 * bufsize / (sampling_rates[first_band + j%num_bands]);
 		
 		printf("sampling rate: %f\n", sampling_rates[first_band + j%num_bands]);
 		// debug message
 		printf("buffer_fill_time: %f\n", buffer_fill_time);
 		
-		// start filling the ADC buffer
-		rp_AcqStart();
-			
-		// let it fill
+		// make sure buffer is full with new samples	
 		usleep(buffer_fill_time);
-		
 		// reset trigger stuff (seems to be necessary)
 		rp_AcqSetTriggerSrc(RP_TRIG_SRC_EXT_PE);
 
@@ -231,10 +238,9 @@ int two_channel_cascade(char conf[]) {
 
 	// _________________________________clean up _____________________________//
 	config_destroy(&cfg);	
+	fclose(gnuplot);
 	free(dp);
 	free(dp1);
-	gnuplot_cmd(h1, "unset multiplot");
-	gnuplot_close(h1);
 	rp_AcqStop();	
 	return RP_OK;
 

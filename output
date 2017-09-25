@@ -1,0 +1,92 @@
+acquire time = : 15
+Multiplot command: set multiplot layout 4,4 rowsfirst
+trigger_pos - bufsize: 3815 
+trig pos, bufsize, bufsize- trigger_pos: 12569, 16384, 3815Comparison of dp[0] and trigger val:
+ -0.019261	0.018056
+sampling rate: 15625000.000000
+buffer_fill_time: 223.942276
+Trigger state: 1
+trigger_pos - bufsize: 430 
+trig pos, bufsize, bufsize- trigger_pos: 15954, 16384, 430Comparison of dp[0] and trigger val:
+ -0.019261	0.017675
+sampling rate: 1953000.000000
+buffer_fill_time: 1791.652954
+Trigger state: 1
+trigger_pos - bufsize: 5145 
+trig pos, bufsize, bufsize- trigger_pos: 11239, 16384, 5145Comparison of dp[0] and trigger val:
+ -0.019005	0.017675
+sampling rate: 122070.000000
+buffer_fill_time: 28664.685547
+Trigger state: 1
+trigger_pos - bufsize: 2186 
+trig pos, bufsize, bufsize- trigger_pos: 14198, 16384, 2186Comparison of dp[0] and trigger val:
+ 0.014253	0.017675
+sampling rate: 15628.000000
+buffer_fill_time: 223899.296875
+Trigger state: 1
+trigger_pos - bufsize: 2137 
+trig pos, bufsize, bufsize- trigger_pos: 14247, 16384, 2137Comparison of dp[0] and trigger val:
+ -0.019005	0.017675
+sampling rate: 15625000.000000
+buffer_fill_time: 223.942276
+Trigger state: 1
+trigger_pos - bufsize: 7174 
+trig pos, bufsize, bufsize- trigger_pos: 9210, 16384, 7174Comparison of dp[0] and trigger val:
+ -0.018619	0.017675
+sampling rate: 1953000.000000
+buffer_fill_time: 1791.652954
+Trigger state: 1
+trigger_pos - bufsize: 6934 
+trig pos, bufsize, bufsize- trigger_pos: 9450, 16384, 6934Comparison of dp[0] and trigger val:
+ -0.000257	0.017675
+sampling rate: 122070.000000
+buffer_fill_time: 28664.685547
+Trigger state: 1
+trigger_pos - bufsize: 4270 
+trig pos, bufsize, bufsize- trigger_pos: 12114, 16384, 4270Comparison of dp[0] and trigger val:
+ 0.010915	0.017675
+sampling rate: 15628.000000
+buffer_fill_time: 223899.296875
+Trigger state: 1
+trigger_pos - bufsize: 2016 
+trig pos, bufsize, bufsize- trigger_pos: 14368, 16384, 2016Comparison of dp[0] and trigger val:
+ -0.013740	0.017675
+sampling rate: 15625000.000000
+buffer_fill_time: 223.942276
+Trigger state: 1
+trigger_pos - bufsize: 6746 
+trig pos, bufsize, bufsize- trigger_pos: 9638, 16384, 6746Comparison of dp[0] and trigger val:
+ -0.017078	0.017675
+sampling rate: 1953000.000000
+buffer_fill_time: 1791.652954
+Trigger state: 1
+trigger_pos - bufsize: 13707 
+trig pos, bufsize, bufsize- trigger_pos: 2677, 16384, 13707Comparison of dp[0] and trigger val:
+ -0.016565	0.017675
+sampling rate: 122070.000000
+buffer_fill_time: 28664.685547
+Trigger state: 1
+trigger_pos - bufsize: 2119 
+trig pos, bufsize, bufsize- trigger_pos: 14265, 16384, 2119Comparison of dp[0] and trigger val:
+ -0.015409	0.017675
+sampling rate: 15628.000000
+buffer_fill_time: 223899.296875
+Trigger state: 1
+trigger_pos - bufsize: 2083 
+trig pos, bufsize, bufsize- trigger_pos: 14301, 16384, 2083Comparison of dp[0] and trigger val:
+ -0.018876	0.017675
+sampling rate: 15625000.000000
+buffer_fill_time: 223.942276
+Trigger state: 1
+trigger_pos - bufsize: 13808 
+trig pos, bufsize, bufsize- trigger_pos: 2576, 16384, 13808Comparison of dp[0] and trigger val:
+ -0.013483	0.017675
+sampling rate: 1953000.000000
+buffer_fill_time: 1791.652954
+Trigger state: 1
+trigger_pos - bufsize: 7767 
+trig pos, bufsize, bufsize- trigger_pos: 8617, 16384, 7767Comparison of dp[0] and trigger val:
+ -0.012841	0.017675
+sampling rate: 122070.000000
+buffer_fill_time: 28664.685547
+Trigger state: 1

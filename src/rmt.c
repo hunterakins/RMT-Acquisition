@@ -6,6 +6,9 @@
 #include <math.h>
 #include "/opt/redpitaya/include/redpitaya/rp.h"
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "fft.h"
 #include "lin_fit.h"
 #include "write.h"
@@ -20,17 +23,17 @@
 #include <libconfig.h>
 
 #define RP_BUF_SIZE 16384
-#define CONF_SIZE 30
-
+#define CONF_SIZE 100
+#define TIME_SIZE 100
 
 char conf_base[] = "/home/redpitaya/RedPitaya/RMT-Acquisition/config/";
 
 int main(int argc, char * argv[]) {	
 	if (argc == 1) {
-		fprintf(stderr, "no config file supplied: go into config folder and choose a config file");
+		fprintf(stderr, "no config file supplied\n choose a config file from config dir\n do not supply the full path of the file\njust the name of the file is sufficient\n");
 		return 1;
 	}
-		
+	// _____________________getting conf file info__________________________________//	
 	char conf[CONF_SIZE];
 	if (strlen(argv[1]) > CONF_SIZE) {
 		fprintf(stderr, "config filename limited to %d chars\n", (int) CONF_SIZE);
@@ -54,11 +57,23 @@ int main(int argc, char * argv[]) {
 	}
 	setting = config_lookup(&cfg, "main");
 	bool cas = config_setting_get_bool_elem(setting, 0);	
+	int write_flag;
+	config_lookup_bool(&cfg, "display.write", &write_flag);
+	const char * file_folder;
+	
+	if (write_flag) {
+		config_lookup_string(&cfg, "write.file_folder", &file_folder);	
+		mkdir(file_folder, 700);
+	}
 	int two_channel;
 	config_lookup_bool(&cfg, "main.two_channel", &two_channel);
+	
+	int coh;
+	config_lookup_bool(&cfg, "main.coherency", &coh);
 
 	if (cas == 1) {	
 		if (two_channel) {
+			printf("here\n");
 			two_channel_cascade(conf_base);
 		}
 		else {
@@ -66,9 +81,13 @@ int main(int argc, char * argv[]) {
 		}
 	}
 	
+	if (coh) {
+		coherency(conf_base);
+	}
+	
 	config_destroy(&cfg);
 	return(EXIT_SUCCESS);
-	
+	/*
 	float * dp = (void *) malloc(sizeof(float) * bufsize);
 	float * ip = calloc(bufsize, sizeof(float));
 	float * domain = (void *) malloc(sizeof(float) * bufsize);
@@ -82,7 +101,7 @@ int main(int argc, char * argv[]) {
 	float * rf1 = (void *) malloc(sizeof(float) * bufsize);
 	float * imf1 = (void *) malloc(sizeof(float) * bufsize);
 
-
+	
 	struct Data Channel1;		
 	Channel1.bufsize = bufsize;	
 	Channel1.dp = dp;
@@ -129,7 +148,7 @@ int main(int argc, char * argv[]) {
 	free(ap1);
 	free(rf1);
 	free(imf1);
-
+	*/
 	rp_Release();
 	return 0;
 
